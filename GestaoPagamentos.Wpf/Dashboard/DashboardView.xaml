@@ -1,0 +1,66 @@
+<UserControl x:Class="GestaoPagamentos.Wpf.Dashboard.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Margin="0,0,0,16">
+            <Button DockPanel.Dock="Right" Content="Atualizar" Style="{StaticResource SecondaryButton}"
+                    Command="{Binding AtualizarCommand}" Margin="0" />
+            <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" />
+        </DockPanel>
+
+        <UniformGrid Grid.Row="1" Rows="1" Margin="0,0,0,16">
+            <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="A receber" Style="{StaticResource MutedText}" />
+                    <TextBlock Text="{Binding Resumo.TotalARreceber, StringFormat=C}" FontSize="22" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="Recebido" Style="{StaticResource MutedText}" />
+                    <TextBlock Text="{Binding Resumo.TotalRecebido, StringFormat=C}" FontSize="22" FontWeight="SemiBold"
+                               Foreground="{StaticResource SuccessBrush}" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="Em atraso" Style="{StaticResource MutedText}" />
+                    <TextBlock Text="{Binding Resumo.TotalEmAtraso, StringFormat=C}" FontSize="22" FontWeight="SemiBold"
+                               Foreground="{StaticResource DangerBrush}" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Dívidas ativas" Style="{StaticResource MutedText}" />
+                    <TextBlock Text="{Binding Resumo.DividasAtivas}" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource MutedText}" FontSize="12">
+                        <Run Text="{Binding Resumo.ParcelasAtrasadas, Mode=OneWay}" /> atrasadas ·
+                        <Run Text="{Binding Resumo.ParcelasPendentes, Mode=OneWay}" /> pendentes
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Border Grid.Row="2" Style="{StaticResource Card}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Parcelas em atraso" Style="{StaticResource SectionTitle}" />
+                <DataGrid ItemsSource="{Binding Atrasados}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Devedor" Binding="{Binding DevedorNome}" Width="*" />
+                        <DataGridTextColumn Header="Dívida" Binding="{Binding Descricao}" Width="*" />
+                        <DataGridTextColumn Header="Parcela" Binding="{Binding NumeroParcela}" Width="70" />
+                        <DataGridTextColumn Header="Vencimento" Binding="{Binding DataVencimento, StringFormat=d}" Width="110" />
+                        <DataGridTextColumn Header="Dias" Binding="{Binding DiasAtraso}" Width="60" />
+                        <DataGridTextColumn Header="Valor" Binding="{Binding ValorRestante, StringFormat=C}" Width="110" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

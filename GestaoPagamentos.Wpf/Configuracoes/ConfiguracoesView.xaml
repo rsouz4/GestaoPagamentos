@@ -1,0 +1,28 @@
+<UserControl x:Class="GestaoPagamentos.Wpf.Configuracoes.ConfiguracoesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="Configurações" Style="{StaticResource PageTitle}" Margin="0,0,0,16" />
+            <Border Style="{StaticResource Card}" MaxWidth="640" HorizontalAlignment="Left">
+                <StackPanel>
+                    <TextBlock Text="Dias de antecedência do lembrete" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding DiasAntecedenciaLembrete, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Intervalo entre envios em lote (ms)" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding IntervaloEnvioLoteMs, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource FieldLabel}"
+                               Text="Modelo de lembrete (use {}{Nome}, {}{Valor}, {}{Descricao}, {}{Vencimento})" />
+                    <TextBox Text="{Binding TemplateLembrete, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                             TextWrapping="Wrap" Height="90" />
+                    <TextBlock Text="Modelo de atraso" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding TemplateAtraso, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                             TextWrapping="Wrap" Height="90" />
+                    <TextBlock Text="{Binding Erro}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"
+                               Margin="0,10,0,0" />
+                    <Button Content="Salvar" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                            Margin="0,16,0,0" Command="{Binding SalvarCommand}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

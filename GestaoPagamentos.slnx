@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="GestaoPagamentos.Application/GestaoPagamentos.Application.csproj" />
+  <Project Path="GestaoPagamentos.Domain/GestaoPagamentos.Domain.csproj" />
+  <Project Path="GestaoPagamentos.Infrastructure/GestaoPagamentos.Infrastructure.csproj" />
+  <Project Path="GestaoPagamentos.Tests/GestaoPagamentos.Tests.csproj" />
+  <Project Path="GestaoPagamentos.Wpf/GestaoPagamentos.Wpf.csproj" />
+</Solution>

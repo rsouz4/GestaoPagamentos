@@ -1,0 +1,31 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:dash="clr-namespace:GestaoPagamentos.Wpf.Dashboard"
+                    xmlns:not="clr-namespace:GestaoPagamentos.Wpf.Notificacoes"
+                    xmlns:cfg="clr-namespace:GestaoPagamentos.Wpf.Configuracoes"
+                    xmlns:dev="clr-namespace:GestaoPagamentos.Wpf.Devedores"
+                    xmlns:div="clr-namespace:GestaoPagamentos.Wpf.Dividas">
+
+    <DataTemplate DataType="{x:Type dash:DashboardViewModel}">
+        <dash:DashboardView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type not:NotificacoesViewModel}">
+        <not:NotificacoesView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type cfg:ConfiguracoesViewModel}">
+        <cfg:ConfiguracoesView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type dev:DevedoresViewModel}">
+        <dev:DevedoresView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type div:DividasViewModel}">
+        <div:DividasView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type div:DividaFormViewModel}">
+        <div:DividaFormView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type div:DividaDetalheViewModel}">
+        <div:DividaDetalheView />
+    </DataTemplate>
+
+</ResourceDictionary>
