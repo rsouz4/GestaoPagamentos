@@ -13,7 +13,7 @@ public sealed class DevedorRepository(AppDbContext db) : RepositoryBase<Devedor>
         if (!string.IsNullOrWhiteSpace(filtroNome))
         {
             var padrao = $"%{filtroNome.Trim()}%";
-            query = query.Where(d => EF.Functions.ILike(d.Nome, padrao));
+            query = query.Where(d => EF.Functions.Like(d.Nome, padrao));
         }
 
         return await query.OrderBy(d => d.Nome).ToListAsync(ct);

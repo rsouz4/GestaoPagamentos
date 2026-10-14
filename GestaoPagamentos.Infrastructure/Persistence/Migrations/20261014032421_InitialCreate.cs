@@ -15,11 +15,11 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                 name: "configuracoes",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    DiasAntecedenciaLembrete = table.Column<int>(type: "integer", nullable: false),
-                    IntervaloEnvioLoteMs = table.Column<int>(type: "integer", nullable: false),
-                    TemplateLembrete = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
-                    TemplateAtraso = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    DiasAntecedenciaLembrete = table.Column<int>(type: "INTEGER", nullable: false),
+                    IntervaloEnvioLoteMs = table.Column<int>(type: "INTEGER", nullable: false),
+                    TemplateLembrete = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: false),
+                    TemplateAtraso = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -30,11 +30,11 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                 name: "devedores",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Nome = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Telefone = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
-                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    Observacao = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Nome = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Telefone = table.Column<string>(type: "TEXT", maxLength: 30, nullable: true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
+                    Observacao = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -45,15 +45,17 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                 name: "dividas",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    DevedorId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Descricao = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
-                    ValorTotal = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    DataPrimeiroVencimento = table.Column<DateOnly>(type: "date", nullable: false),
-                    Tipo = table.Column<int>(type: "integer", nullable: false),
-                    QuantidadeParcelas = table.Column<int>(type: "integer", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    Observacao = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    DevedorId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Descricao = table.Column<string>(type: "TEXT", maxLength: 300, nullable: false),
+                    ValorEmprestado = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
+                    TaxaJuros = table.Column<decimal>(type: "TEXT", precision: 7, scale: 4, nullable: false),
+                    ValorTotal = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
+                    DataPrimeiroVencimento = table.Column<DateOnly>(type: "TEXT", nullable: false),
+                    Tipo = table.Column<int>(type: "INTEGER", nullable: false),
+                    QuantidadeParcelas = table.Column<int>(type: "INTEGER", nullable: false),
+                    Status = table.Column<int>(type: "INTEGER", nullable: false),
+                    Observacao = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -70,11 +72,11 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                 name: "parcelas",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    DividaId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Numero = table.Column<int>(type: "integer", nullable: false),
-                    ValorPrevisto = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    DataVencimento = table.Column<DateOnly>(type: "date", nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    DividaId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Numero = table.Column<int>(type: "INTEGER", nullable: false),
+                    ValorPrevisto = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
+                    DataVencimento = table.Column<DateOnly>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -91,14 +93,14 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                 name: "notificacoes",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    DevedorId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ParcelaId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Tipo = table.Column<int>(type: "integer", nullable: false),
-                    Mensagem = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    DevedorId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    ParcelaId = table.Column<Guid>(type: "TEXT", nullable: true),
+                    Tipo = table.Column<int>(type: "INTEGER", nullable: false),
+                    Mensagem = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: false),
                     DataGeracao = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     DataEnvio = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false)
+                    Status = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -121,11 +123,11 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                 name: "pagamentos",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ParcelaId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Valor = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    DataPagamento = table.Column<DateOnly>(type: "date", nullable: false),
-                    Observacao = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    ParcelaId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Valor = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
+                    DataPagamento = table.Column<DateOnly>(type: "TEXT", nullable: false),
+                    Observacao = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {

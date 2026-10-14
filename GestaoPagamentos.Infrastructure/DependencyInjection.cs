@@ -24,7 +24,7 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException(
                 $"A connection string '{ConnectionStringName}' não foi configurada.");
 
-        services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connectionString));
+        services.AddDbContext<AppDbContext>(o => o.UseSqlite(connectionString));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IDevedorRepository, DevedorRepository>();

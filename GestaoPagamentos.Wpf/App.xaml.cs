@@ -46,7 +46,7 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"Não foi possível iniciar o aplicativo.\n\nVerifique se o PostgreSQL está em execução e se a connection string em appsettings.json está correta.\n\nDetalhes: {ex.Message}",
+                $"Não foi possível iniciar o aplicativo.\n\nVerifique se o arquivo de banco de dados está acessível e se a connection string em appsettings.json está correta.\n\nDetalhes: {ex.Message}",
                 "Gestão de Pagamentos",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
