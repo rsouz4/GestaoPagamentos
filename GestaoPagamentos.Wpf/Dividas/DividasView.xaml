@@ -24,7 +24,8 @@
                     <DataGridTextColumn Header="Devedor" Binding="{Binding DevedorNome}" Width="1.2*" />
                     <DataGridTextColumn Header="Descrição" Binding="{Binding Descricao}" Width="1.5*" />
                     <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo, Converter={StaticResource StatusTexto}}" Width="90" />
-                    <DataGridTextColumn Header="Total" Binding="{Binding ValorTotal, StringFormat=C}" Width="100" />
+                    <DataGridTextColumn Header="Emprestado" Binding="{Binding ValorEmprestado, StringFormat=C}" Width="100" />
+                                        <DataGridTextColumn Header="A receber" Binding="{Binding ValorTotal, StringFormat=C}" Width="100" />
                     <DataGridTextColumn Header="Pago" Binding="{Binding ValorPago, StringFormat=C}" Width="100" />
                     <DataGridTextColumn Header="Restante" Binding="{Binding ValorRestante, StringFormat=C}" Width="100" />
                     <DataGridTextColumn Header="Atrasadas" Binding="{Binding ParcelasAtrasadas}" Width="80" />

@@ -17,7 +17,7 @@ public sealed class CriarDividaUseCase(IDividaRepository dividas, IDevedorReposi
             var divida = Divida.Criar(
                 cmd.DevedorId,
                 cmd.Descricao,
-                cmd.ValorTotal,
+                cmd.ValorEmprestado,
                 cmd.PrimeiroVencimento,
                 cmd.Tipo,
                 cmd.QuantidadeParcelas,

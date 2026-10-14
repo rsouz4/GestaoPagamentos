@@ -4,10 +4,14 @@ namespace GestaoPagamentos.Domain.Dividas;
 
 public class Divida : Entity<Guid>
 {
+    public const decimal TaxaJurosPadrao = 0.30m;
+
     private readonly List<Parcela> _parcelas = [];
 
     public Guid DevedorId { get; private set; }
     public string Descricao { get; private set; } = string.Empty;
+    public decimal ValorEmprestado { get; private set; }
+    public decimal TaxaJuros { get; private set; }
     public decimal ValorTotal { get; private set; }
     public DateOnly DataPrimeiroVencimento { get; private set; }
     public TipoDivida Tipo { get; private set; }
@@ -17,25 +21,28 @@ public class Divida : Entity<Guid>
     public IReadOnlyList<Parcela> Parcelas => _parcelas;
 
     public decimal ValorPago => _parcelas.Sum(p => p.ValorPago);
-    public decimal ValorRestante => _parcelas.Sum(p => p.ValorRestante);
+    public decimal ValorRestanteEm(DateOnly data) => _parcelas.Sum(p => p.ValorRestanteEm(data));
 
     private Divida() { }
 
     public static Divida Criar(
         Guid devedorId,
         string descricao,
-        decimal valorTotal,
+        decimal valorEmprestado,
         DateOnly primeiroVencimento,
         TipoDivida tipo,
         int quantidadeParcelas,
-        string? observacao)
+        string? observacao,
+        decimal taxaJuros = TaxaJurosPadrao)
     {
         if (devedorId == Guid.Empty)
             throw new DomainException("O devedor é obrigatório.");
         if (string.IsNullOrWhiteSpace(descricao))
             throw new DomainException("A descrição da dívida é obrigatória.");
-        if (valorTotal <= 0m)
-            throw new DomainException("O valor total deve ser maior que zero.");
+        if (valorEmprestado <= 0m)
+            throw new DomainException("O valor emprestado deve ser maior que zero.");
+        if (taxaJuros < 0m)
+            throw new DomainException("A taxa de juros não pode ser negativa.");
 
         var quantidade = tipo == TipoDivida.Avulsa ? 1 : quantidadeParcelas;
         if (quantidade < 1)
@@ -46,7 +53,9 @@ public class Divida : Entity<Guid>
             Id = Guid.CreateVersion7(),
             DevedorId = devedorId,
             Descricao = descricao.Trim(),
-            ValorTotal = decimal.Round(valorTotal, 2),
+            ValorEmprestado = decimal.Round(valorEmprestado, 2),
+            TaxaJuros = taxaJuros,
+            ValorTotal = decimal.Round(valorEmprestado * (1m + taxaJuros), 2, MidpointRounding.AwayFromZero),
             DataPrimeiroVencimento = primeiroVencimento,
             Tipo = tipo,
             QuantidadeParcelas = quantidade,

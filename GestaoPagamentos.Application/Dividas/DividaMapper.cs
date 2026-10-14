@@ -15,9 +15,10 @@ internal static class DividaMapper
             d.Descricao,
             d.Tipo,
             d.Status,
+            d.ValorEmprestado,
             d.ValorTotal,
             d.ValorPago,
-            d.ValorRestante,
+            d.ValorRestanteEm(hoje),
             d.QuantidadeParcelas,
             abertas.Count(p => p.StatusEm(hoje) == StatusParcela.Atrasada),
             abertas.Count > 0 ? abertas[0].DataVencimento : null);
@@ -32,17 +33,18 @@ internal static class DividaMapper
         d.Observacao,
         d.Tipo,
         d.Status,
+        d.ValorEmprestado,
+        d.TaxaJuros,
         d.ValorTotal,
         d.ValorPago,
-        d.ValorRestante,
+        d.ValorRestanteEm(hoje),
         d.Parcelas.OrderBy(p => p.Numero).Select(p => ParaParcela(p, hoje)).ToList());
-
     private static ParcelaDto ParaParcela(Parcela p, DateOnly hoje) => new(
         p.Id,
         p.Numero,
         p.ValorPrevisto,
         p.ValorPago,
-        p.ValorRestante,
+        p.ValorRestanteEm(hoje),
         p.DataVencimento,
         p.StatusEm(hoje),
         p.Pagamentos

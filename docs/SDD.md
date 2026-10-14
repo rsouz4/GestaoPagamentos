@@ -23,7 +23,7 @@ Aplicação desktop WPF (.NET 10) para substituir o controle de dívidas hoje fe
 
 ### Fora de escopo
 - Autenticação/autorização e multiusuário.
-- Cálculo de juros ou multa por atraso (atraso é apenas informativo).
+- Cobrança automática ou integração com gateways de pagamento.
 - Envio automático de WhatsApp por API (Cloud API, Twilio etc.). Pode ser avaliado numa fase futura.
 - Notificação externa (WhatsApp/push) ao usuário quando um pagamento é registrado: apenas aviso dentro do app.
 - Aplicação web / API REST.
@@ -82,7 +82,9 @@ Classes `...UseCase` com `ExecuteAsync`, recebendo um `record` de comando/consul
 | Id | Guid | PK (v7, gerado no domínio) |
 | DevedorId | Guid | FK |
 | Descricao | string | obrigatório |
-| ValorTotal | decimal | > 0 |
+| ValorEmprestado | decimal | > 0; valor entregue ao devedor |
+| TaxaJuros | decimal | 0,30 (30%) aplicada na criação |
+| ValorTotal | decimal | **Valor a receber** = ValorEmprestado × (1 + TaxaJuros) |
 | DataPrimeiroVencimento | date | base para gerar parcelas |
 | Tipo | enum | Avulsa, Parcelada |
 | QuantidadeParcelas | int | 1 para avulsa |
@@ -135,14 +137,15 @@ Status da parcela é **calculado** (não persistido):
 | TemplateAtraso | string | mesmos placeholders |
 
 ## 6. Regras de Negócio
-1. Dívida **Avulsa** gera exatamente 1 parcela com o valor total.
-2. Dívida **Parcelada** gera N parcelas mensais consecutivas a partir do primeiro vencimento. A última parcela absorve a diferença de arredondamento.
-3. Pagamento parcial é permitido; a soma dos pagamentos de uma parcela não pode exceder o ValorPrevisto.
-4. Dívida passa a **Quitada** quando todas as parcelas estiverem pagas.
-5. Dívida **Cancelada** não aceita novos pagamentos.
-6. Excluir pagamento recalcula o status da parcela e da dívida.
-7. Não há juros/multa: atraso é apenas informativo.
-8. Devedor com dívidas ativas não pode ser excluído.
+1. Ao criar a dívida, informa-se o **valor emprestado**; o sistema aplica **30% de juros** na hora e o **valor a receber** (`ValorTotal`) é `emprestado × 1,30` (ex.: R$ 1.000 → R$ 1.300). Parcelas e pagamentos usam o valor a receber.
+2. Dívida **Avulsa** gera exatamente 1 parcela com o valor a receber.
+3. Dívida **Parcelada** gera N parcelas mensais consecutivas a partir do primeiro vencimento sobre o valor a receber. A última parcela absorve a diferença de arredondamento.
+4. Pagamento parcial é permitido; a soma dos pagamentos de uma parcela não pode exceder o ValorPrevisto.
+5. Dívida passa a **Quitada** quando todas as parcelas estiverem pagas.
+6. Dívida **Cancelada** não aceita novos pagamentos.
+7. Excluir pagamento recalcula o status da parcela e da dívida.
+8. Multa por atraso: 15% ao dia, composta (juros sobre juros), sobre o saldo restante da parcela (principal + multa acumulada) a cada dia após o vencimento. Pagamentos abatem primeiro a multa acumulada e depois o principal. Valores restantes exibidos são calculados na data atual (IClock.Hoje); não há persistência da multa.
+9. Devedor com dívidas ativas não pode ser excluído.
 
 ## 7. Notificações
 

@@ -13,12 +13,13 @@ public sealed class DividaConfiguration : IEntityTypeConfiguration<Divida>
         builder.HasKey(d => d.Id);
         builder.Property(d => d.Id).ValueGeneratedNever();
         builder.Property(d => d.Descricao).HasMaxLength(300).IsRequired();
+        builder.Property(d => d.ValorEmprestado).HasPrecision(18, 2);
+        builder.Property(d => d.TaxaJuros).HasPrecision(7, 4);
         builder.Property(d => d.ValorTotal).HasPrecision(18, 2);
         builder.Property(d => d.Observacao).HasMaxLength(1000);
         builder.Property(d => d.Tipo).HasConversion<int>();
         builder.Property(d => d.Status).HasConversion<int>();
         builder.Ignore(d => d.ValorPago);
-        builder.Ignore(d => d.ValorRestante);
 
         builder.HasOne<Devedor>()
             .WithMany()
@@ -45,7 +46,6 @@ public sealed class ParcelaConfiguration : IEntityTypeConfiguration<Parcela>
         builder.Property(p => p.Id).ValueGeneratedNever();
         builder.Property(p => p.ValorPrevisto).HasPrecision(18, 2);
         builder.Ignore(p => p.ValorPago);
-        builder.Ignore(p => p.ValorRestante);
         builder.Ignore(p => p.EstaQuitada);
 
         builder.HasMany(p => p.Pagamentos)

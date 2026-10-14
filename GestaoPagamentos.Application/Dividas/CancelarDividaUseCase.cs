@@ -11,7 +11,8 @@ public sealed class CancelarDividaUseCase(
     public async Task<Result> ExecuteAsync(Guid dividaId, CancellationToken ct = default)
     {
         var divida = await dividas.ObterPorIdAsync(dividaId, ct);
-        if (divida is null) return Result.Falha("Dívida não encontrada.");
+        if (divida is null)
+            return Result.Falha("Dívida não encontrada.");
 
         divida.Cancelar();
 

@@ -10,6 +10,7 @@ public sealed class AtualizarDividaUseCase(IDividaRepository dividas, IUnitOfWor
         try
         {
             var divida = await dividas.ObterPorIdAsync(cmd.DividaId, ct);
+
             if (divida is null) return Result.Falha("Dívida não encontrada.");
 
             divida.AtualizarDados(cmd.Descricao, cmd.Observacao);

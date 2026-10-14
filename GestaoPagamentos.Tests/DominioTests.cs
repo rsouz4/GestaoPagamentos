@@ -1,4 +1,4 @@
-using GestaoPagamentos.Application.Notificacoes;
+﻿using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Domain.Common;
 using GestaoPagamentos.Domain.Dividas;
 
@@ -12,12 +12,49 @@ public class DividaTests
         Divida.Criar(Guid.NewGuid(), "Emprestimo", total, Inicio, TipoDivida.Parcelada, parcelas, null);
 
     [Fact]
+    public void Criar_Aplica30PorCentoDeJurosNoValorAReceber()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "Emprestimo", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
+
+        Assert.Equal(1000m, divida.ValorEmprestado);
+        Assert.Equal(0.30m, divida.TaxaJuros);
+        Assert.Equal(1300m, divida.ValorTotal);
+        Assert.Equal(1300m, divida.Parcelas[0].ValorPrevisto);
+        Assert.Equal(1300m, divida.ValorRestanteEm(Inicio));
+    }
+
+    [Fact]
+    public void Multa_AcumulaDiariamenteComJurosCompostos()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "x", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
+        var parcela = divida.Parcelas[0];
+        var venc = parcela.DataVencimento;
+
+        Assert.Equal(0m, parcela.MultaEm(venc));
+        Assert.Equal(195m, parcela.MultaEm(venc.AddDays(1)));
+        Assert.Equal(1300m + 195m + 224.25m, parcela.ValorRestanteEm(venc.AddDays(2)));
+    }
+
+    [Fact]
+    public void Pagamento_AbatePrimeiroAMultaDepoisOPrincipal()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "x", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
+        var parcela = divida.Parcelas[0];
+        var dia = parcela.DataVencimento.AddDays(1);
+
+        divida.RegistrarPagamento(parcela.Id, 195m, dia);
+
+        Assert.Equal(0m, parcela.MultaEm(dia));
+        Assert.Equal(1300m, parcela.ValorRestanteEm(dia));
+    }
+
+    [Fact]
     public void Criar_Parcelada_GeraParcelasQueSomamOTotal()
     {
         var divida = Parcelada(100m, 3);
 
         Assert.Equal(3, divida.Parcelas.Count);
-        Assert.Equal(100m, divida.Parcelas.Sum(p => p.ValorPrevisto));
+        Assert.Equal(130m, divida.Parcelas.Sum(p => p.ValorPrevisto));
         Assert.NotEqual(Guid.Empty, divida.Id);
     }
 
@@ -27,7 +64,7 @@ public class DividaTests
         var divida = Divida.Criar(Guid.NewGuid(), "Conta", 50m, Inicio, TipoDivida.Avulsa, 1, null);
 
         Assert.Single(divida.Parcelas);
-        Assert.Equal(50m, divida.Parcelas[0].ValorPrevisto);
+        Assert.Equal(65m, divida.Parcelas[0].ValorPrevisto);
     }
 
     [Fact]
@@ -64,10 +101,10 @@ public class DividaTests
         var divida = Parcelada(90m, 3);
 
         foreach (var p in divida.Parcelas.ToList())
-            divida.RegistrarPagamento(p.Id, p.ValorRestante, Inicio);
+            divida.RegistrarPagamento(p.Id, p.ValorRestanteEm(Inicio), Inicio);
 
         Assert.Equal(StatusDivida.Quitada, divida.Status);
-        Assert.Equal(0m, divida.ValorRestante);
+        Assert.Equal(0m, divida.ValorRestanteEm(Inicio));
     }
 
     [Fact]
@@ -75,9 +112,8 @@ public class DividaTests
     {
         var divida = Parcelada(90m, 3);
         foreach (var p in divida.Parcelas.ToList())
-            divida.RegistrarPagamento(p.Id, p.ValorRestante, Inicio);
+            divida.RegistrarPagamento(p.Id, p.ValorRestanteEm(Inicio), Inicio);
         var pagamento = divida.Parcelas[0].Pagamentos[0];
-
         divida.ExcluirPagamento(pagamento.Id);
 
         Assert.Equal(StatusDivida.Ativa, divida.Status);

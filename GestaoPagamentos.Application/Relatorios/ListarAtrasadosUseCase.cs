@@ -28,7 +28,7 @@ public sealed class ListarAtrasadosUseCase(IDividaRepository dividas, IDevedorRe
                     devedor?.Telefone,
                     x.Divida.Descricao,
                     x.Parcela.Numero,
-                    x.Parcela.ValorRestante,
+                    x.Parcela.ValorRestanteEm(hoje),
                     x.Parcela.DataVencimento,
                     hoje.DayNumber - x.Parcela.DataVencimento.DayNumber);
             })

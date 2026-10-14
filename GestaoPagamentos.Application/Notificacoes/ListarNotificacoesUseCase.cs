@@ -7,7 +7,8 @@ namespace GestaoPagamentos.Application.Notificacoes;
 public sealed class ListarNotificacoesUseCase(
     INotificacaoRepository notificacoes,
     IDevedorRepository devedores,
-    IDividaRepository dividas)
+    IDividaRepository dividas,
+    GestaoPagamentos.Application.Common.IClock clock)
 {
     public async Task<IReadOnlyList<NotificacaoDto>> ExecuteAsync(
         StatusNotificacao? status = null,
@@ -42,7 +43,7 @@ public sealed class ListarNotificacoesUseCase(
                 n.Mensagem,
                 info?.Divida.Descricao,
                 info?.Parcela.Numero,
-                info?.Parcela.ValorRestante,
+                info?.Parcela.ValorRestanteEm(clock.Hoje),
                 info?.Parcela.DataVencimento,
                 n.DataGeracao,
                 n.DataEnvio);

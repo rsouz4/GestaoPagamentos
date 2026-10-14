@@ -52,7 +52,7 @@ public sealed class GerarNotificacoesUseCase(
 
                 var template = tipo == TipoNotificacao.Atraso ? config.TemplateAtraso : config.TemplateLembrete;
                 var mensagem = WhatsAppLinkBuilder.RenderizarTemplate(
-                    template, devedor.Nome, parcela.ValorRestante, parcela.DataVencimento, divida.Descricao);
+                    template, devedor.Nome, parcela.ValorRestanteEm(hoje), parcela.DataVencimento, divida.Descricao);
 
                 await notificacoes.AdicionarAsync(
                     Notificacao.Criar(devedor.Id, parcela.Id, tipo.Value, mensagem, clock.Agora), ct);

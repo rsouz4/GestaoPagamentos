@@ -17,9 +17,9 @@ public sealed class ObterResumoUseCase(IDividaRepository dividas, IClock clock)
         var atrasadas = abertas.Where(p => p.StatusEm(hoje) == StatusParcela.Atrasada).ToList();
 
         return new ResumoDto(
-            TotalARreceber: abertas.Sum(p => p.ValorRestante),
+            abertas.Sum(p => p.ValorRestanteEm(hoje)),
             TotalRecebido: validas.Sum(d => d.ValorPago),
-            TotalEmAtraso: atrasadas.Sum(p => p.ValorRestante),
+            atrasadas.Sum(p => p.ValorRestanteEm(hoje)),
             DividasAtivas: ativas.Count,
             ParcelasPendentes: abertas.Count(p => p.StatusEm(hoje) == StatusParcela.Pendente),
             ParcelasPagasParcialmente: abertas.Count(p => p.StatusEm(hoje) == StatusParcela.PagaParcial),

@@ -103,8 +103,16 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("TaxaJuros")
+                        .HasPrecision(7, 4)
+                        .HasColumnType("numeric(7,4)");
+
                     b.Property<int>("Tipo")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("ValorEmprestado")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal>("ValorTotal")
                         .HasPrecision(18, 2)
