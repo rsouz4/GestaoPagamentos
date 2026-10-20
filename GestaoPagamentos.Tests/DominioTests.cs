@@ -24,7 +24,7 @@ public class DividaTests
     }
 
     [Fact]
-    public void Multa_AcumulaDiariamenteComJurosCompostos()
+    public void Multa_AcumulaDiariamenteSobreOValorOriginalDaParcela()
     {
         var divida = Divida.Criar(Guid.NewGuid(), "x", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
         var parcela = divida.Parcelas[0];
@@ -32,7 +32,79 @@ public class DividaTests
 
         Assert.Equal(0m, parcela.MultaEm(venc));
         Assert.Equal(195m, parcela.MultaEm(venc.AddDays(1)));
-        Assert.Equal(1300m + 195m + 224.25m, parcela.ValorRestanteEm(venc.AddDays(2)));
+        Assert.Equal(390m, parcela.MultaEm(venc.AddDays(2)));
+        Assert.Equal(1690m, parcela.ValorRestanteEm(venc.AddDays(2)));
+        Assert.Equal(1885m, parcela.ValorRestanteEm(venc.AddDays(3)));
+        Assert.Equal(7150m, parcela.ValorRestanteEm(venc.AddDays(30)));
+    }
+
+    [Fact]
+    public void Multa_PagamentoParcialAntesDoVencimento_NaoReduzABaseDiaria()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "x", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
+        var parcela = divida.Parcelas[0];
+
+        divida.RegistrarPagamento(parcela.Id, 500m, Inicio.AddDays(-1));
+
+        Assert.Equal(0m, parcela.MultaEm(Inicio));
+        Assert.Equal(800m, parcela.ValorRestanteEm(Inicio));
+        Assert.Equal(195m, parcela.MultaEm(Inicio.AddDays(1)));
+        Assert.Equal(995m, parcela.ValorRestanteEm(Inicio.AddDays(1)));
+    }
+
+    [Fact]
+    public void Multa_PagamentoParcialEmAtraso_NaoReduzABaseDiaria()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "x", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
+        var parcela = divida.Parcelas[0];
+
+        divida.RegistrarPagamento(parcela.Id, 695m, Inicio.AddDays(1));
+
+        Assert.Equal(0m, parcela.MultaEm(Inicio.AddDays(1)));
+        Assert.Equal(800m, parcela.ValorRestanteEm(Inicio.AddDays(1)));
+        Assert.Equal(195m, parcela.MultaEm(Inicio.AddDays(2)));
+        Assert.Equal(995m, parcela.ValorRestanteEm(Inicio.AddDays(2)));
+        Assert.Equal(390m, parcela.MultaEm(Inicio.AddDays(3)));
+        Assert.Equal(1190m, parcela.ValorRestanteEm(Inicio.AddDays(3)));
+    }
+
+    [Fact]
+    public void Multa_QuitacaoEmAtraso_InterrompeOsAcrescimosDiarios()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "x", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
+        var parcela = divida.Parcelas[0];
+
+        divida.RegistrarPagamento(parcela.Id, 1690m, Inicio.AddDays(2));
+
+        Assert.True(parcela.EstaQuitada);
+        Assert.Equal(StatusDivida.Quitada, divida.Status);
+        Assert.Equal(0m, parcela.MultaEm(Inicio.AddDays(30)));
+        Assert.Equal(0m, parcela.ValorRestanteEm(Inicio.AddDays(30)));
+    }
+
+    [Fact]
+    public void Multa_ArredondaOAcrescimoDiarioParaCentavos()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "x", 1m, Inicio, TipoDivida.Avulsa, 1, null);
+        var parcela = divida.Parcelas[0];
+
+        Assert.Equal(0.20m, parcela.MultaEm(Inicio.AddDays(1)));
+        Assert.Equal(0.60m, parcela.MultaEm(Inicio.AddDays(3)));
+        Assert.Equal(1.90m, parcela.ValorRestanteEm(Inicio.AddDays(3)));
+    }
+
+    [Fact]
+    public void Multa_ExcluirPagamento_RecalculaOsAcrescimosSimples()
+    {
+        var divida = Divida.Criar(Guid.NewGuid(), "x", 1000m, Inicio, TipoDivida.Avulsa, 1, null);
+        var parcela = divida.Parcelas[0];
+        var pagamento = divida.RegistrarPagamento(parcela.Id, 1495m, Inicio.AddDays(1));
+
+        divida.ExcluirPagamento(pagamento.Id);
+
+        Assert.Equal(StatusDivida.Ativa, divida.Status);
+        Assert.Equal(585m, parcela.MultaEm(Inicio.AddDays(3)));
+        Assert.Equal(1885m, parcela.ValorRestanteEm(Inicio.AddDays(3)));
     }
 
     [Fact]

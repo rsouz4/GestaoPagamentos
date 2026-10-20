@@ -140,11 +140,11 @@ Status da parcela é **calculado** (não persistido):
 1. Ao criar a dívida, informa-se o **valor emprestado**; o sistema aplica **30% de juros** na hora e o **valor a receber** (`ValorTotal`) é `emprestado × 1,30` (ex.: R$ 1.000 → R$ 1.300). Parcelas e pagamentos usam o valor a receber.
 2. Dívida **Avulsa** gera exatamente 1 parcela com o valor a receber.
 3. Dívida **Parcelada** gera N parcelas mensais consecutivas a partir do primeiro vencimento sobre o valor a receber. A última parcela absorve a diferença de arredondamento.
-4. Pagamento parcial é permitido; a soma dos pagamentos de uma parcela não pode exceder o ValorPrevisto.
+4. Pagamento parcial é permitido; cada pagamento deve ser maior que zero e não pode exceder o saldo restante da parcela na data informada, incluindo a multa devida.
 5. Dívida passa a **Quitada** quando todas as parcelas estiverem pagas.
 6. Dívida **Cancelada** não aceita novos pagamentos.
 7. Excluir pagamento recalcula o status da parcela e da dívida.
-8. Multa por atraso: 15% ao dia, composta (juros sobre juros), sobre o saldo restante da parcela (principal + multa acumulada) a cada dia após o vencimento. Pagamentos abatem primeiro a multa acumulada e depois o principal. Valores restantes exibidos são calculados na data atual (IClock.Hoje); não há persistência da multa.
+8. Multa por atraso: acréscimo diário simples de 15% sobre o valor original da parcela (`ValorPrevisto`, já incluindo os juros iniciais), arredondado para centavos a cada dia após o vencimento. Não há capitalização da multa; pagamentos parciais não alteram a base diária. O acréscimo do dia ocorre antes dos pagamentos daquela data; pagamentos abatem primeiro a multa acumulada e depois o principal. A quitação completa interrompe novos acréscimos. Exemplo: parcela de R$ 1.300 acrescenta R$ 195 por dia; sem pagamentos, os saldos no primeiro e no segundo dia de atraso são R$ 1.495 e R$ 1.690. Valores restantes exibidos são calculados na data atual (IClock.Hoje); não há persistência da multa.
 9. Devedor com dívidas ativas não pode ser excluído.
 
 ## 7. Notificações

@@ -96,11 +96,13 @@ public class Parcela : Entity<Guid>
 
         AplicarPagamentosAte(DataVencimento);
 
+        var multaDiaria = decimal.Round(ValorPrevisto * TaxaMultaDiaria, 2, MidpointRounding.AwayFromZero);
+
         for (var dia = DataVencimento.AddDays(1); dia <= ate && principal + multa > 0m; dia = dia.AddDays(1))
         {
             var saldo = principal + multa;
             if (saldo < LimiteSaldo)
-                multa += decimal.Round(saldo * TaxaMultaDiaria, 2, MidpointRounding.AwayFromZero);
+                multa += multaDiaria;
 
             AplicarPagamentosAte(dia);
         }
