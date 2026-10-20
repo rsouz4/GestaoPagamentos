@@ -27,7 +27,9 @@ public sealed record DividaResumoDto(
     decimal ValorRestante,
     int QuantidadeParcelas,
     int ParcelasAtrasadas,
-    DateOnly? ProximoVencimento);
+    DateOnly? ProximoVencimento,
+    DateOnly DataEmprestimo,
+    DateOnly DataVencimento);
 
 public sealed record DividaDetalheDto(
     Guid Id,

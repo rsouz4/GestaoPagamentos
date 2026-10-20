@@ -15,30 +15,40 @@
         </DockPanel>
 
         <UniformGrid Grid.Row="1" Rows="1" Margin="0,0,0,16">
-            <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+            <Border Style="{StaticResource Card}" Margin="0,0,12,0"
+                    Background="{StaticResource PrimarySoftBrush}" BorderBrush="{StaticResource PrimaryBrush}"
+                    BorderThickness="0,4,0,0">
                 <StackPanel>
                     <TextBlock Text="A receber" Style="{StaticResource MutedText}" />
-                    <TextBlock Text="{Binding Resumo.TotalARreceber, StringFormat=C}" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Resumo.TotalARreceber, StringFormat=C}" FontSize="22" FontWeight="SemiBold"
+                               Foreground="{StaticResource PrimaryBrush}" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
-            <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+            <Border Style="{StaticResource Card}" Margin="0,0,12,0"
+                    Background="{StaticResource SuccessSoftBrush}" BorderBrush="{StaticResource SuccessBrush}"
+                    BorderThickness="0,4,0,0">
                 <StackPanel>
                     <TextBlock Text="Recebido" Style="{StaticResource MutedText}" />
                     <TextBlock Text="{Binding Resumo.TotalRecebido, StringFormat=C}" FontSize="22" FontWeight="SemiBold"
-                               Foreground="{StaticResource SuccessBrush}" />
+                               Foreground="{StaticResource SuccessBrush}" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
-            <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+            <Border Style="{StaticResource Card}" Margin="0,0,12,0"
+                    Background="{StaticResource DangerSoftBrush}" BorderBrush="{StaticResource DangerBrush}"
+                    BorderThickness="0,4,0,0">
                 <StackPanel>
                     <TextBlock Text="Em atraso" Style="{StaticResource MutedText}" />
                     <TextBlock Text="{Binding Resumo.TotalEmAtraso, StringFormat=C}" FontSize="22" FontWeight="SemiBold"
-                               Foreground="{StaticResource DangerBrush}" />
+                               Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{StaticResource Card}"
+                    Background="{StaticResource WarningSoftBrush}" BorderBrush="{StaticResource WarningBrush}"
+                    BorderThickness="0,4,0,0">
                 <StackPanel>
                     <TextBlock Text="Dívidas ativas" Style="{StaticResource MutedText}" />
-                    <TextBlock Text="{Binding Resumo.DividasAtivas}" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Resumo.DividasAtivas}" FontSize="22" FontWeight="SemiBold"
+                               Foreground="{StaticResource WarningBrush}" Margin="0,8,0,0" />
                     <TextBlock Style="{StaticResource MutedText}" FontSize="12">
                         <Run Text="{Binding Resumo.ParcelasAtrasadas, Mode=OneWay}" /> atrasadas ·
                         <Run Text="{Binding Resumo.ParcelasPendentes, Mode=OneWay}" /> pendentes

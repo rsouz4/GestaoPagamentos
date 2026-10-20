@@ -22,25 +22,11 @@
             <DataGrid ItemsSource="{Binding Itens}" SelectedItem="{Binding Selecionada}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Devedor" Binding="{Binding DevedorNome}" Width="1.2*" />
-                    <DataGridTextColumn Header="Descrição" Binding="{Binding Descricao}" Width="1.5*" />
+                    <DataGridTextColumn Header="Valor emprestado" Binding="{Binding ValorEmprestado, StringFormat=C}" Width="1*" />
                     <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo, Converter={StaticResource StatusTexto}}" Width="90" />
-                    <DataGridTextColumn Header="Emprestado" Binding="{Binding ValorEmprestado, StringFormat=C}" Width="100" />
-                                        <DataGridTextColumn Header="A receber" Binding="{Binding ValorTotal, StringFormat=C}" Width="100" />
+                    <DataGridTextColumn Header="Data empréstimo" Binding="{Binding DataEmprestimo, StringFormat=d}" Width="1*" />
+                    <DataGridTextColumn Header="Data vencimento" Binding="{Binding DataVencimento, StringFormat=d}" Width="1*" />
                     <DataGridTextColumn Header="Pago" Binding="{Binding ValorPago, StringFormat=C}" Width="100" />
-                    <DataGridTextColumn Header="Restante" Binding="{Binding ValorRestante, StringFormat=C}" Width="100" />
-                    <DataGridTextColumn Header="Atrasadas" Binding="{Binding ParcelasAtrasadas}" Width="80" />
-                    <DataGridTextColumn Header="Próx. venc." Binding="{Binding ProximoVencimento, StringFormat=d}" Width="100" />
-                    <DataGridTemplateColumn Header="Status" Width="100">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource StatusPill}"
-                                        Background="{Binding Status, Converter={StaticResource StatusBrush}, ConverterParameter=bg}">
-                                    <TextBlock Text="{Binding Status, Converter={StaticResource StatusTexto}}" FontSize="12"
-                                               Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" />
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

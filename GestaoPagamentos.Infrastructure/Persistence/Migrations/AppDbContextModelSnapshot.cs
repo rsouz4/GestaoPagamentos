@@ -77,6 +77,9 @@ namespace GestaoPagamentos.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly>("DataEmprestimo")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("DataPrimeiroVencimento")
                         .HasColumnType("TEXT");
 

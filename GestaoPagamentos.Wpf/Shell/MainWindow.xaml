@@ -4,6 +4,7 @@
         Title="Gestão de Pagamentos"
         Width="1200" Height="740" MinWidth="960" MinHeight="580"
         WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI" FontSize="13"
         Background="{StaticResource AppBackgroundBrush}">
     <Grid>
         <Grid.ColumnDefinitions>
@@ -14,8 +15,13 @@
         <Border Background="{StaticResource SidebarBrush}">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Margin="22,26,22,22">
-                    <TextBlock Text="Gestão de" Foreground="#9CA3AF" FontSize="13" />
+                    <Border Background="{StaticResource AccentGradientBrush}" CornerRadius="12"
+                            Width="44" Height="44" HorizontalAlignment="Left" Margin="0,0,0,14">
+                        <TextBlock Text="$" Foreground="White" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Gestão de" Foreground="#93C5FD" FontSize="13" />
                     <TextBlock Text="Pagamentos" Foreground="White" FontSize="22" FontWeight="Bold" />
+                    <TextBlock Text="Controle financeiro" Foreground="{StaticResource BorderBrushSoft}" FontSize="12" Margin="0,6,0,0" />
                 </StackPanel>
 
                 <ListBox ItemsSource="{Binding Itens}"
@@ -29,7 +35,8 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="Bd" CornerRadius="8" Padding="14,11" Background="Transparent">
+                                        <Border x:Name="Bd" CornerRadius="10" Padding="12,11" Background="Transparent"
+                                                BorderThickness="2" BorderBrush="Transparent">
                                             <ContentPresenter />
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -37,7 +44,10 @@
                                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource SidebarHoverBrush}" />
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryBrush}" />
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentGradientBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#93C5FD" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -71,7 +81,7 @@
         <ContentControl Grid.Column="1" Content="{Binding Conteudo}" Margin="28" />
 
         <Border Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,28,24"
-                Background="#111827" CornerRadius="8" Padding="18,12" MaxWidth="460"
+                Background="#1E3A8A" CornerRadius="10" Padding="18,12" MaxWidth="460"
                 Visibility="{Binding ToastVisivel, Converter={StaticResource BoolToVisibility}}">
             <TextBlock Text="{Binding ToastMensagem}" Foreground="White" TextWrapping="Wrap" />
         </Border>

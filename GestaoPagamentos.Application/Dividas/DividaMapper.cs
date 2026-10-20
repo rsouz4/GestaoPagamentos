@@ -8,6 +8,10 @@ public static class DividaMapper
     public static DividaResumoDto ParaResumo(Divida d, string devedorNome, DateOnly hoje)
     {
         var abertas = d.Parcelas.Where(p => !p.EstaQuitada).OrderBy(p => p.DataVencimento).ToList();
+        var ultimoVencimento = d.Parcelas.Count > 0
+            ? d.Parcelas.Max(p => p.DataVencimento)
+            : d.DataPrimeiroVencimento;
+
         return new DividaResumoDto(
             d.Id,
             d.DevedorId,
@@ -21,7 +25,9 @@ public static class DividaMapper
             d.ValorRestanteEm(hoje),
             d.QuantidadeParcelas,
             abertas.Count(p => p.StatusEm(hoje) == StatusParcela.Atrasada),
-            abertas.Count > 0 ? abertas[0].DataVencimento : null);
+            abertas.Count > 0 ? abertas[0].DataVencimento : null,
+            d.DataEmprestimo,
+            ultimoVencimento);
     }
 
     public static DividaDetalheDto ParaDetalhe(Divida d, Devedor devedor, DateOnly hoje) => new(

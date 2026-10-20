@@ -14,6 +14,7 @@ public class Divida : Entity<Guid>
     public decimal TaxaJuros { get; private set; }
     public decimal ValorTotal { get; private set; }
     public DateOnly DataPrimeiroVencimento { get; private set; }
+    public DateOnly DataEmprestimo { get; private set; }
     public TipoDivida Tipo { get; private set; }
     public int QuantidadeParcelas { get; private set; }
     public StatusDivida Status { get; private set; }
@@ -37,14 +38,18 @@ public class Divida : Entity<Guid>
     {
         if (devedorId == Guid.Empty)
             throw new DomainException("O devedor é obrigatório.");
+
         if (string.IsNullOrWhiteSpace(descricao))
             throw new DomainException("A descrição da dívida é obrigatória.");
+
         if (valorEmprestado <= 0m)
             throw new DomainException("O valor emprestado deve ser maior que zero.");
+
         if (taxaJuros < 0m)
             throw new DomainException("A taxa de juros não pode ser negativa.");
 
         var quantidade = tipo == TipoDivida.Avulsa ? 1 : quantidadeParcelas;
+
         if (quantidade < 1)
             throw new DomainException("A quantidade de parcelas deve ser no mínimo 1.");
 
@@ -57,6 +62,7 @@ public class Divida : Entity<Guid>
             TaxaJuros = taxaJuros,
             ValorTotal = decimal.Round(valorEmprestado * (1m + taxaJuros), 2, MidpointRounding.AwayFromZero),
             DataPrimeiroVencimento = primeiroVencimento,
+            DataEmprestimo = DateOnly.FromDateTime(DateTime.Today),
             Tipo = tipo,
             QuantidadeParcelas = quantidade,
             Status = StatusDivida.Ativa,
