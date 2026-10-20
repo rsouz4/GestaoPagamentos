@@ -1,16 +1,18 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestaoPagamentos.Application.Dividas;
 using GestaoPagamentos.Application.Pagamentos;
 using GestaoPagamentos.Domain.Dividas;
 using GestaoPagamentos.Wpf.Common;
+using GestaoPagamentos.Wpf.Services;
 using GestaoPagamentos.Wpf.Shell;
+using System.Collections.ObjectModel;
 
 namespace GestaoPagamentos.Wpf.Dividas;
 
 public sealed partial class DividaDetalheViewModel(
-    UseCaseRunner useCases,
+    DividaService dividaService,
+    PagamentoService pagamentoService,
     INavigator navigator,
     IDialogService dialogs,
     AppEvents eventos) : ViewModelBase
@@ -39,7 +41,7 @@ public sealed partial class DividaDetalheViewModel(
     {
         var id = _dividaId;
         var selecionada = ParcelaSelecionada?.Id;
-        var r = await useCases.ExecutarAsync((ObterDividaUseCase u) => u.ExecuteAsync(id));
+        var r = await dividaService.ObterAsync(id);
         if (!r.Sucesso) { Erro = r.Erro; return; }
 
         Divida = r.Valor;
@@ -73,7 +75,7 @@ public sealed partial class DividaDetalheViewModel(
 
         var cmd = new RegistrarPagamentoCommand(
             ParcelaSelecionada.Id, valor, DateOnly.FromDateTime(DataPagamento), ObservacaoPagamento);
-        var r = await useCases.ExecutarAsync((RegistrarPagamentoUseCase u) => u.ExecuteAsync(cmd));
+        var r = await pagamentoService.RegistrarAsync(cmd);
         if (!r.Sucesso) { Erro = r.Erro; return; }
 
         ObservacaoPagamento = null;
@@ -88,7 +90,7 @@ public sealed partial class DividaDetalheViewModel(
         if (PagamentoSelecionado is not { } p) return;
         if (!dialogs.Confirmar("Excluir o pagamento selecionado?")) return;
 
-        var r = await useCases.ExecutarAsync((ExcluirPagamentoUseCase u) => u.ExecuteAsync(p.Id));
+        var r = await pagamentoService.ExcluirAsync(p.Id);
         if (!r.Sucesso) { Erro = r.Erro; return; }
 
         eventos.MostrarToast("Pagamento excluído.");
@@ -101,7 +103,7 @@ public sealed partial class DividaDetalheViewModel(
         if (!dialogs.Confirmar("Cancelar esta dívida? As notificações pendentes serão descartadas.")) return;
 
         var id = _dividaId;
-        var r = await useCases.ExecutarAsync((CancelarDividaUseCase u) => u.ExecuteAsync(id));
+        var r = await dividaService.CancelarAsync(id);
         if (!r.Sucesso) { Erro = r.Erro; return; }
 
         eventos.NotificarNotificacoesAlteradas();
@@ -115,7 +117,7 @@ public sealed partial class DividaDetalheViewModel(
     {
         var id = _dividaId;
         var selecionada = ParcelaSelecionada?.Id;
-        var r = await useCases.ExecutarAsync((ObterDividaUseCase u) => u.ExecuteAsync(id));
+        var r = await dividaService.ObterAsync(id);
         if (!r.Sucesso) { Erro = r.Erro; return; }
 
         Divida = r.Valor;

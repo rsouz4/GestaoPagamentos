@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
-using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Wpf.Common;
+using GestaoPagamentos.Wpf.Notificacoes;
 
 namespace GestaoPagamentos.Wpf.Shell;
 
@@ -11,7 +11,7 @@ public sealed partial class MainViewModel : ViewModelBase
     public const string ChaveNotificacoes = "notificacoes";
 
     private readonly INavigator _navigator;
-    private readonly UseCaseRunner _useCases;
+    private readonly NotificacaoService _notificacaoService;
     private CancellationTokenSource? _toastCts;
 
     public ObservableCollection<NavItem> Itens { get; }
@@ -32,10 +32,10 @@ public sealed partial class MainViewModel : ViewModelBase
         IEnumerable<NavItem> itens,
         INavigator navigator,
         AppEvents eventos,
-        UseCaseRunner useCases)
+        NotificacaoService notificacaoService)
     {
         _navigator = navigator;
-        _useCases = useCases;
+        _notificacaoService = notificacaoService;
         Itens = new ObservableCollection<NavItem>(itens);
 
         _navigator.Navegou += () => Conteudo = _navigator.Atual;
@@ -58,7 +58,7 @@ public sealed partial class MainViewModel : ViewModelBase
     {
         try
         {
-            var total = await _useCases.ExecutarAsync((ContarNotificacoesPendentesUseCase u) => u.ExecuteAsync());
+            var total = await _notificacaoService.ContarPendentesAsync();
             var item = Itens.FirstOrDefault(i => i.Chave == ChaveNotificacoes);
             if (item is not null) item.Badge = total;
         }

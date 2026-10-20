@@ -10,7 +10,7 @@
                 <TextBlock Text="Descrição *" Style="{StaticResource FieldLabel}" />
                 <TextBox Text="{Binding Descricao, UpdateSourceTrigger=PropertyChanged}" />
                 <TextBlock Text="Valor emprestado (R$) *" Style="{StaticResource FieldLabel}" />
-                <TextBox Text="{Binding ValorEmprestado, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBox Text="{Binding ValorEmprestado, UpdateSourceTrigger=LostFocus}" />
                 <TextBlock Text="{Binding ValorAReceberTexto}" FontWeight="SemiBold" Margin="0,6,0,0" />
                 <TextBlock Text="Tipo" Style="{StaticResource FieldLabel}" />
                 <ComboBox ItemsSource="{Binding Tipos}" SelectedItem="{Binding Tipo}">

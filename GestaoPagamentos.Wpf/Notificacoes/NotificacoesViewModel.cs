@@ -1,15 +1,15 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Domain.Notificacoes;
 using GestaoPagamentos.Wpf.Common;
 using GestaoPagamentos.Wpf.Shell;
+using System.Collections.ObjectModel;
 
 namespace GestaoPagamentos.Wpf.Notificacoes;
 
 public sealed partial class NotificacoesViewModel(
-    UseCaseRunner useCases,
+    NotificacaoService notificacaoService,
     IDialogService dialogs,
     AppEvents eventos) : ViewModelBase
 {
@@ -31,7 +31,7 @@ public sealed partial class NotificacoesViewModel(
     [RelayCommand]
     private Task GerarAsync() => ExecutarAsync(async () =>
     {
-        var novas = await useCases.ExecutarAsync((GerarNotificacoesUseCase u) => u.ExecuteAsync());
+        var novas = await notificacaoService.GerarAsync();
         eventos.MostrarToast(novas == 0 ? "Nenhuma notificação nova." : $"{novas} notificação(ões) gerada(s).");
         await RecarregarAsync();
     });
@@ -41,8 +41,7 @@ public sealed partial class NotificacoesViewModel(
 
     private async Task RecarregarAsync()
     {
-        var lista = await useCases.ExecutarAsync(
-            (ListarNotificacoesUseCase u) => u.ExecuteAsync(StatusNotificacao.Pendente, null));
+        var lista = await notificacaoService.ListarAsync(StatusNotificacao.Pendente, null);
         Itens.Clear();
         foreach (var n in lista) Itens.Add(n);
         OnPropertyChanged(nameof(TotalAtrasadosPendentes));
@@ -54,7 +53,7 @@ public sealed partial class NotificacoesViewModel(
     {
         if (Selecionada is not { } n) return;
         var msg = Mensagem;
-        var r = await useCases.ExecutarAsync((EnviarNotificacaoUseCase u) => u.ExecuteAsync(n.Id, msg));
+        var r = await notificacaoService.EnviarAsync(n.Id, msg);
         if (!r.Sucesso) { Erro = r.Erro; return; }
 
         eventos.MostrarToast("WhatsApp aberto. Confirme o envio no aplicativo.");
@@ -65,7 +64,7 @@ public sealed partial class NotificacoesViewModel(
     private Task IgnorarAsync() => ExecutarAsync(async () =>
     {
         if (Selecionada is not { } n) return;
-        await useCases.ExecutarAsync((IgnorarNotificacaoUseCase u) => u.ExecuteAsync(n.Id));
+        await notificacaoService.IgnorarAsync(n.Id);
         await RecarregarAsync();
     });
 
@@ -88,8 +87,7 @@ public sealed partial class NotificacoesViewModel(
         {
             var progresso = new Progress<LoteProgresso>(p => Progresso = $"Abrindo {p.Atual}/{p.Total}: {p.DevedorNome}");
             var cts = _loteCts;
-            var r = await useCases.ExecutarAsync((EnviarAtrasadosEmLoteUseCase u) =>
-                u.ExecuteAsync(itens, progresso, cts.Token));
+            var r = await notificacaoService.EnviarLoteAsync(itens, progresso, cts.Token);
 
             eventos.MostrarToast(
                 $"Lote {(r.Cancelado ? "cancelado" : "concluído")}: {r.Enviadas} aberta(s), {r.Puladas} pulada(s).");

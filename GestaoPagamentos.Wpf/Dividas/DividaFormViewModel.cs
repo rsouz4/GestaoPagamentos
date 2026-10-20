@@ -1,22 +1,45 @@
-﻿using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestaoPagamentos.Application.Devedores;
 using GestaoPagamentos.Application.Dividas;
 using GestaoPagamentos.Domain.Dividas;
 using GestaoPagamentos.Wpf.Common;
+using GestaoPagamentos.Wpf.Devedores;
 using GestaoPagamentos.Wpf.Shell;
+using System.Collections.ObjectModel;
 
 namespace GestaoPagamentos.Wpf.Dividas;
 
-public sealed partial class DividaFormViewModel(UseCaseRunner useCases, INavigator navigator, AppEvents eventos) : ViewModelBase
+public sealed partial class DividaFormViewModel(
+    DevedorService devedorService,
+    DividaService dividaService,
+    INavigator navigator,
+    AppEvents eventos) : ViewModelBase
 {
     public ObservableCollection<DevedorDto> Devedores { get; } = [];
     public IReadOnlyList<TipoDivida> Tipos { get; } = [TipoDivida.Avulsa, TipoDivida.Parcelada];
 
     [ObservableProperty] private DevedorDto? _devedor;
     [ObservableProperty] private string _descricao = string.Empty;
-    [ObservableProperty] private string? _valorTotal;
+
+    private string? _valorEmprestado;
+    public string? ValorEmprestado
+    {
+        get => _valorEmprestado;
+        set
+        {
+            if (Parsing.TentarDecimal(value, out var v))
+            {
+                value = v.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"));
+            }
+
+            if (SetProperty(ref _valorEmprestado, value))
+            {
+                OnPropertyChanged(nameof(ValorAReceberTexto));
+            }
+        }
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ExibeParcelas))]
     private TipoDivida _tipo = TipoDivida.Avulsa;
@@ -26,11 +49,16 @@ public sealed partial class DividaFormViewModel(UseCaseRunner useCases, INavigat
 
     public bool ExibeParcelas => Tipo == TipoDivida.Parcelada;
 
+    public string ValorAReceberTexto =>
+        Parsing.TentarDecimal(ValorEmprestado, out var v) && v > 0
+            ? $"Valor a receber (+{Divida.TaxaJurosPadrao:P0} de juros): {decimal.Round(v * (1 + Divida.TaxaJurosPadrao), 2, MidpointRounding.AwayFromZero):C}"
+            : $"Valor a receber: acrescenta {Divida.TaxaJurosPadrao:P0} de juros";
+
     public override async Task InicializarAsync()
     {
         await ExecutarAsync(async () =>
         {
-            var lista = await useCases.ExecutarAsync((ListarDevedoresUseCase u) => u.ExecuteAsync());
+            var lista = await devedorService.ListarAsync();
             Devedores.Clear();
             foreach (var d in lista) Devedores.Add(d);
         });
@@ -39,14 +67,28 @@ public sealed partial class DividaFormViewModel(UseCaseRunner useCases, INavigat
     [RelayCommand]
     private Task SalvarAsync() => ExecutarAsync(async () =>
     {
-        if (Devedor is null) { Erro = "Selecione o devedor."; return; }
-        if (!Parsing.TentarDecimal(ValorTotal, out var valor)) { Erro = "Valor total inválido."; return; }
+        if (Devedor is null)
+        {
+            Erro = "Selecione o devedor.";
+            return;
+        }
+
+        if (!Parsing.TentarDecimal(ValorEmprestado, out var valor))
+        {
+            Erro = "Valor emprestado inválido.";
+            return;
+        }
 
         var parcelas = Tipo == TipoDivida.Avulsa ? 1 : QuantidadeParcelas;
         var cmd = new CriarDividaCommand(
-            Devedor.Id, Descricao, valor, DateOnly.FromDateTime(PrimeiroVencimento), Tipo, parcelas, Observacao);
+            Devedor.Id,
+            Descricao,
+            valor,
+            DateOnly.FromDateTime(PrimeiroVencimento),
+            Tipo, parcelas,
+            Observacao);
 
-        var r = await useCases.ExecutarAsync((CriarDividaUseCase u) => u.ExecuteAsync(cmd));
+        var r = await dividaService.CriarAsync(cmd);
         if (!r.Sucesso) { Erro = r.Erro; return; }
 
         eventos.MostrarToast("Dívida criada.");

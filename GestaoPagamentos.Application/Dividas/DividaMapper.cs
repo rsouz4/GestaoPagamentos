@@ -3,7 +3,7 @@ using GestaoPagamentos.Domain.Dividas;
 
 namespace GestaoPagamentos.Application.Dividas;
 
-internal static class DividaMapper
+public static class DividaMapper
 {
     public static DividaResumoDto ParaResumo(Divida d, string devedorNome, DateOnly hoje)
     {

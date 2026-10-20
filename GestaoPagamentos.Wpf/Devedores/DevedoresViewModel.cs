@@ -7,7 +7,7 @@ using GestaoPagamentos.Wpf.Shell;
 
 namespace GestaoPagamentos.Wpf.Devedores;
 
-public sealed partial class DevedoresViewModel(UseCaseRunner useCases, IDialogService dialogs, AppEvents eventos) : ViewModelBase
+public sealed partial class DevedoresViewModel(DevedorService devedorService, IDialogService dialogs, AppEvents eventos) : ViewModelBase
 {
     public ObservableCollection<DevedorDto> Itens { get; } = [];
 
@@ -39,7 +39,7 @@ public sealed partial class DevedoresViewModel(UseCaseRunner useCases, IDialogSe
     [RelayCommand]
     private Task BuscarAsync() => ExecutarAsync(async () =>
     {
-        var lista = await useCases.ExecutarAsync((ListarDevedoresUseCase u) => u.ExecuteAsync(Filtro));
+        var lista = await devedorService.ListarAsync(Filtro);
         Itens.Clear();
         foreach (var d in lista) Itens.Add(d);
     });
@@ -58,7 +58,7 @@ public sealed partial class DevedoresViewModel(UseCaseRunner useCases, IDialogSe
     private Task SalvarAsync() => ExecutarAsync(async () =>
     {
         var cmd = new SalvarDevedorCommand(EditandoId, Nome, Telefone, Email, Observacao);
-        var r = await useCases.ExecutarAsync((SalvarDevedorUseCase u) => u.ExecuteAsync(cmd));
+        var r = await devedorService.SalvarAsync(cmd);
         if (!r.Sucesso)
         {
             Erro = r.Erro;
@@ -76,7 +76,7 @@ public sealed partial class DevedoresViewModel(UseCaseRunner useCases, IDialogSe
         if (EditandoId is not { } id) return;
         if (!dialogs.Confirmar($"Excluir o devedor \"{Nome}\"?")) return;
 
-        var r = await useCases.ExecutarAsync((ExcluirDevedorUseCase u) => u.ExecuteAsync(id));
+        var r = await devedorService.ExcluirAsync(id);
         if (!r.Sucesso)
         {
             Erro = r.Erro;

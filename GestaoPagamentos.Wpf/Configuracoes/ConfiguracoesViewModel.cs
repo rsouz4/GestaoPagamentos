@@ -6,7 +6,7 @@ using GestaoPagamentos.Wpf.Shell;
 
 namespace GestaoPagamentos.Wpf.Configuracoes;
 
-public sealed partial class ConfiguracoesViewModel(UseCaseRunner useCases, AppEvents eventos) : ViewModelBase
+public sealed partial class ConfiguracoesViewModel(ConfiguracaoService configuracaoService, AppEvents eventos) : ViewModelBase
 {
     [ObservableProperty] private int _diasAntecedenciaLembrete;
     [ObservableProperty] private int _intervaloEnvioLoteMs;
@@ -15,7 +15,7 @@ public sealed partial class ConfiguracoesViewModel(UseCaseRunner useCases, AppEv
 
     public override Task InicializarAsync() => ExecutarAsync(async () =>
     {
-        var c = await useCases.ExecutarAsync((ObterConfiguracaoUseCase u) => u.ExecuteAsync());
+        var c = await configuracaoService.ObterAsync();
         DiasAntecedenciaLembrete = c.DiasAntecedenciaLembrete;
         IntervaloEnvioLoteMs = c.IntervaloEnvioLoteMs;
         TemplateLembrete = c.TemplateLembrete;
@@ -26,7 +26,7 @@ public sealed partial class ConfiguracoesViewModel(UseCaseRunner useCases, AppEv
     private Task SalvarAsync() => ExecutarAsync(async () =>
     {
         var dto = new ConfiguracaoDto(DiasAntecedenciaLembrete, IntervaloEnvioLoteMs, TemplateLembrete, TemplateAtraso);
-        var r = await useCases.ExecutarAsync((SalvarConfiguracaoUseCase u) => u.ExecuteAsync(dto));
+        var r = await configuracaoService.SalvarAsync(dto);
         if (!r.Sucesso) { Erro = r.Erro; return; }
         eventos.MostrarToast("Configurações salvas.");
     });

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Markup;
-using GestaoPagamentos.Application;
+using GestaoPagamentos.Application.Common;
 using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Infrastructure;
 using GestaoPagamentos.Infrastructure.Persistence;
@@ -11,6 +11,7 @@ using GestaoPagamentos.Wpf.Dashboard;
 using GestaoPagamentos.Wpf.Devedores;
 using GestaoPagamentos.Wpf.Dividas;
 using GestaoPagamentos.Wpf.Notificacoes;
+using GestaoPagamentos.Wpf.Services;
 using GestaoPagamentos.Wpf.Shell;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,14 +74,20 @@ public partial class App : System.Windows.Application
             ContentRootPath = AppContext.BaseDirectory
         });
 
-        builder.Services.AddApplication();
+        builder.Services.AddSingleton<IClock, SystemClock>();
         builder.Services.AddInfrastructure(builder.Configuration);
 
         builder.Services.AddSingleton<AppEvents>();
         builder.Services.AddSingleton<INavigator, Navigator>();
         builder.Services.AddSingleton<ILauncher, ProcessLauncher>();
-        builder.Services.AddSingleton<UseCaseRunner>();
         builder.Services.AddSingleton<IDialogService, WpfDialogService>();
+
+        builder.Services.AddSingleton<DevedorService>();
+        builder.Services.AddSingleton<DividaService>();
+        builder.Services.AddSingleton<PagamentoService>();
+        builder.Services.AddSingleton<NotificacaoService>();
+        builder.Services.AddSingleton<ConfiguracaoService>();
+        builder.Services.AddSingleton<RelatorioService>();
 
         builder.Services.AddTransient<DashboardViewModel>();
         builder.Services.AddTransient<NotificacoesViewModel>();

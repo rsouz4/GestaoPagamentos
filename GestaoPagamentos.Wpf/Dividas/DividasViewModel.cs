@@ -1,16 +1,16 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestaoPagamentos.Application.Dividas;
 using GestaoPagamentos.Domain.Dividas;
 using GestaoPagamentos.Wpf.Common;
 using GestaoPagamentos.Wpf.Shell;
+using System.Collections.ObjectModel;
 
 namespace GestaoPagamentos.Wpf.Dividas;
 
 public sealed record FiltroStatus(string Titulo, StatusDivida? Status);
 
-public sealed partial class DividasViewModel(UseCaseRunner useCases, INavigator navigator) : ViewModelBase
+public sealed partial class DividasViewModel(DividaService dividaService, INavigator navigator) : ViewModelBase
 {
     public ObservableCollection<DividaResumoDto> Itens { get; } = [];
 
@@ -37,7 +37,7 @@ public sealed partial class DividasViewModel(UseCaseRunner useCases, INavigator 
     private Task CarregarAsync() => ExecutarAsync(async () =>
     {
         var status = Filtro?.Status;
-        var lista = await useCases.ExecutarAsync((ListarDividasUseCase u) => u.ExecuteAsync(status));
+        var lista = await dividaService.ListarAsync(status);
         Itens.Clear();
         foreach (var d in lista) Itens.Add(d);
     });
