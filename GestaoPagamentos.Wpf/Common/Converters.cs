@@ -1,8 +1,8 @@
+using GestaoPagamentos.Domain.Dividas;
+using GestaoPagamentos.Domain.Notificacoes;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
-using GestaoPagamentos.Domain.Dividas;
-using GestaoPagamentos.Domain.Notificacoes;
 
 namespace GestaoPagamentos.Wpf.Common;
 
@@ -22,6 +22,7 @@ public sealed class StatusTextoConverter : IValueConverter
         TipoNotificacao.Lembrete => "Lembrete",
         TipoNotificacao.Atraso => "Atraso",
         TipoNotificacao.PagamentoRecebido => "Pagamento recebido",
+        TipoNotificacao.Vencimento => "Vencimento",
         StatusNotificacao.Pendente => "Pendente",
         StatusNotificacao.Enviada => "Enviada",
         StatusNotificacao.Ignorada => "Ignorada",
@@ -47,7 +48,7 @@ public sealed class StatusBrushConverter : IValueConverter
         {
             StatusParcela.Paga or StatusDivida.Quitada or StatusNotificacao.Enviada => Verde,
             StatusParcela.Atrasada or TipoNotificacao.Atraso => Vermelho,
-            StatusParcela.PagaParcial or TipoNotificacao.Lembrete => Laranja,
+            StatusParcela.PagaParcial or TipoNotificacao.Lembrete or TipoNotificacao.Vencimento => Laranja,
             StatusParcela.Pendente or StatusDivida.Ativa or StatusNotificacao.Pendente => Azul,
             _ => Cinza
         };

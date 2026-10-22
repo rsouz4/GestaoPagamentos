@@ -87,7 +87,7 @@ public sealed class NotificacaoService(
 
         var atrasadasIds = ativas
             .SelectMany(d => d.Parcelas)
-            .Where(p => !p.EstaQuitada && p.DataVencimento < hoje)
+            .Where(p => !p.EstaQuitada && p.DataVencimento <= hoje)
             .Select(p => (Guid?)p.Id)
             .ToList();
 
@@ -117,6 +117,7 @@ public sealed class NotificacaoService(
             {
                 TipoNotificacao? tipo = null;
                 if (parcela.DataVencimento < hoje) tipo = TipoNotificacao.Atraso;
+                else if (parcela.DataVencimento == hoje) tipo = TipoNotificacao.Vencimento;
                 else if (parcela.DataVencimento <= limiteLembrete) tipo = TipoNotificacao.Lembrete;
 
                 if (tipo is null) continue;
