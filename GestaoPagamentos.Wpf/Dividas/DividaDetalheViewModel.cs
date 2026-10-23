@@ -85,6 +85,22 @@ public sealed partial class DividaDetalheViewModel(
     });
 
     [RelayCommand]
+    private Task RenovarComJurosAsync() => ExecutarAsync(async () =>
+    {
+        if (ParcelaSelecionada is null) { Erro = "Selecione uma parcela."; return; }
+        if (!dialogs.Confirmar("Cobrar juros e renovar a dívida por mais 30 dias?")) return;
+
+        var cmd = new RenovarParcelaComJurosCommand(ParcelaSelecionada.Id, DateOnly.FromDateTime(DateTime.Today));
+        var r = await pagamentoService.RenovarComJurosAsync(cmd);
+        if (!r.Sucesso) { Erro = r.Erro; return; }
+
+        ObservacaoPagamento = null;
+        eventos.MostrarToast("Juros cobrados e dívida renovada.");
+        eventos.NotificarNotificacoesAlteradas();
+        await RecarregarInternoAsync();
+    });
+
+    [RelayCommand]
     private Task ExcluirPagamentoAsync() => ExecutarAsync(async () =>
     {
         if (PagamentoSelecionado is not { } p) return;

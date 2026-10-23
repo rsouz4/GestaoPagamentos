@@ -79,4 +79,43 @@ public sealed class PagamentoService(IDbContextFactory<AppDbContext> dbFactory, 
             return Result.Falha(ex.Message);
         }
     }
+
+    public async Task<Result<PagamentoRegistradoDto>> RenovarComJurosAsync(RenovarParcelaComJurosCommand cmd, CancellationToken ct = default)
+    {
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+            var divida = await DividaService.ComParcelas(db)
+                .FirstOrDefaultAsync(d => d.Parcelas.Any(p => p.Id == cmd.ParcelaId), ct);
+            if (divida is null) return Result.Falha<PagamentoRegistradoDto>("Parcela não encontrada.");
+
+            var devedor = await db.Devedores.FirstOrDefaultAsync(d => d.Id == divida.DevedorId, ct);
+            if (devedor is null) return Result.Falha<PagamentoRegistradoDto>("Devedor da dívida não encontrado.");
+
+            var pagamento = divida.RenovarComJuros(cmd.ParcelaId, cmd.Data);
+            var parcela = divida.ObterParcelaOuNulo(cmd.ParcelaId)!;
+
+            var mensagem = $"Juros de {pagamento.Valor.ToString("C", PtBr)} cobrados de {devedor.Nome} " +
+                           $"({divida.Descricao}, parcela {parcela.Numero}) - Dívida renovada.";
+            var aviso = Notificacao.Criar(devedor.Id, parcela.Id, TipoNotificacao.PagamentoRecebido, mensagem, clock.Agora);
+            aviso.MarcarComoEnviada(clock.Agora);
+            await db.Notificacoes.AddAsync(aviso, ct);
+
+            await db.SaveChangesAsync(ct);
+
+            return Result.Ok(new PagamentoRegistradoDto(
+                divida.Id,
+                devedor.Nome,
+                parcela.Numero,
+                pagamento.Valor,
+                false,
+                false));
+        }
+        catch (DomainException ex)
+        {
+            return Result.Falha<PagamentoRegistradoDto>(ex.Message);
+        }
+    }
 }
+

@@ -93,6 +93,32 @@ public class Divida : Entity<Guid>
         return pagamento;
     }
 
+    public Pagamento RenovarComJuros(Guid parcelaId, DateOnly data)
+    {
+        if (Status == StatusDivida.Cancelada)
+            throw new DomainException("Dívida cancelada não pode ser renovada.");
+
+        var parcelaAtual = ObterParcela(parcelaId);
+
+        // O ValorPrevisto já inclui juros. Calcular o principal
+        var valorPrincipal = decimal.Round(parcelaAtual.ValorPrevisto / (1m + TaxaJuros), 2, MidpointRounding.AwayFromZero);
+
+        // Os juros são a diferença
+        var jurosCalculados = parcelaAtual.ValorPrevisto - valorPrincipal;
+
+        // Registrar pagamento dos juros
+        var pagamentoJuros = parcelaAtual.AdicionarPagamento(jurosCalculados, data, "Pagamento de juros - Renovação");
+
+        // Criar nova parcela com o mesmo valor (principal + juros novamente)
+        var proximoNumero = _parcelas.Max(p => p.Numero) + 1;
+        var novaDataVencimento = parcelaAtual.DataVencimento.AddMonths(1);
+
+        _parcelas.Add(Parcela.Criar(Id, proximoNumero, parcelaAtual.ValorPrevisto, novaDataVencimento));
+
+        RecalcularStatus();
+        return pagamentoJuros;
+    }
+
     public void ExcluirPagamento(Guid pagamentoId)
     {
         if (Status == StatusDivida.Cancelada)
