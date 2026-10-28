@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Windows;
-using System.Windows.Markup;
 using GestaoPagamentos.Application.Common;
 using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Infrastructure;
@@ -16,6 +13,9 @@ using GestaoPagamentos.Wpf.Shell;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Globalization;
+using System.Windows;
+using System.Windows.Markup;
 
 namespace GestaoPagamentos.Wpf;
 
@@ -43,6 +43,9 @@ public partial class App : System.Windows.Application
             var janela = _host.Services.GetRequiredService<MainWindow>();
             janela.Show();
             await _host.Services.GetRequiredService<MainViewModel>().InicializarAsync();
+
+            // Dispara auto-envio de notificações em background após UI carregar
+            _ = DispararAutoEnvioEmBackgroundAsync();
         }
         catch (Exception ex)
         {
@@ -52,6 +55,34 @@ public partial class App : System.Windows.Application
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(1);
+        }
+    }
+
+    private async Task DispararAutoEnvioEmBackgroundAsync()
+    {
+        try
+        {
+            if (_host is null)
+                return;
+
+            // Aguarda um pouco para garantir que UI está completamente carregada
+            await Task.Delay(1000);
+
+            // Usar await using para descartar corretamente serviços IAsyncDisposable
+            await using (var scope = _host.Services.CreateAsyncScope())
+            {
+                var autoEnvioService = scope.ServiceProvider
+                    .GetRequiredService<NotificacaoAutoEnvioService>();
+
+                // Executa em background sem bloquear UI
+                await autoEnvioService.ExecutarEnvioAutomaticoAoIniciarAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log silencioso - não interrompe a aplicação
+            System.Diagnostics.Debug.WriteLine(
+                $"Erro no auto-envio de notificações: {ex.Message}");
         }
     }
 
@@ -88,6 +119,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<NotificacaoService>();
         builder.Services.AddSingleton<ConfiguracaoService>();
         builder.Services.AddSingleton<RelatorioService>();
+        builder.Services.AddTransient<NotificacaoAutoEnvioService>();
 
         builder.Services.AddTransient<DashboardViewModel>();
         builder.Services.AddTransient<NotificacoesViewModel>();

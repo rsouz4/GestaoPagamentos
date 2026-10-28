@@ -18,7 +18,7 @@
                 <Button Content="Gerar notificações" Style="{StaticResource SecondaryButton}"
                         Command="{Binding GerarCommand}" />
                 <Button Content="Enviar todas os atrasados" Style="{StaticResource DangerButton}"
-                        Command="{Binding EnviarAtrasadosCommand}" Margin="0" />
+                        Command="{Binding Ta Command}" Margin="0" />
             </StackPanel>
             <TextBlock Text="Notificações" Style="{StaticResource PageTitle}" />
         </DockPanel>

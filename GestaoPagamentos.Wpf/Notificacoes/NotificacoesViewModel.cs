@@ -10,6 +10,7 @@ namespace GestaoPagamentos.Wpf.Notificacoes;
 
 public sealed partial class NotificacoesViewModel(
     NotificacaoService notificacaoService,
+    IWhatsAppAutomationService automationService,
     IDialogService dialogs,
     AppEvents eventos) : ViewModelBase
 {
@@ -21,6 +22,7 @@ public sealed partial class NotificacoesViewModel(
     [ObservableProperty] private string _mensagem = string.Empty;
     [ObservableProperty] private string? _progresso;
     [ObservableProperty] private bool _loteEmAndamento;
+    [ObservableProperty] private bool _envioAutomaticoEmAndamento;
 
     public int TotalAtrasadosPendentes => Itens.Count(n => n.Tipo == TipoNotificacao.Atraso && n.TelefoneValido);
 
@@ -108,4 +110,124 @@ public sealed partial class NotificacoesViewModel(
 
     [RelayCommand]
     private void CancelarLote() => _loteCts?.Cancel();
+
+    [RelayCommand]
+    private Task EnviarViaWhatsAppWebAsync() => ExecutarAsync(async () =>
+    {
+        if (Selecionada is not { } n)
+        {
+            Erro = "Nenhuma notificação selecionada.";
+            return;
+        }
+
+        if (!n.TelefoneValido)
+        {
+            Erro = "Telefone inválido para este devedor.";
+            return;
+        }
+
+        EnvioAutomaticoEmAndamento = true;
+        Progresso = $"Enviando mensagem para {n.DevedorNome}...";
+        Erro = null;
+
+        try
+        {
+            var resultado = await notificacaoService.EnviarViaWhatsAppWebAsync(n.Id, automationService, CancellationToken.None);
+            if (resultado)
+            {
+                eventos.MostrarToast("Mensagem enviada com sucesso via WhatsApp Web!");
+                await RecarregarAsync();
+            }
+            else
+            {
+                Erro = "Falha ao enviar mensagem. Verifique os logs e tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Erro = $"Erro ao enviar mensagem: {ex.Message}";
+        }
+        finally
+        {
+            EnvioAutomaticoEmAndamento = false;
+            Progresso = null;
+        }
+    });
+
+    [RelayCommand]
+    private Task EnviarAtrasadosViaAutomacaoAsync() => ExecutarAsync(async () =>
+    {
+        var itens = Itens.Where(n => n.Tipo == TipoNotificacao.Atraso && n.TelefoneValido).ToList();
+        if (itens.Count == 0)
+        {
+            dialogs.Aviso("Não há notificações de atraso com telefone válido.");
+            return;
+        }
+
+        if (!dialogs.Confirmar(
+                $"Serão enviadas {itens.Count} mensagens via WhatsApp Web (automático). " +
+                "Este processo pode levar alguns minutos. Continuar?"))
+            return;
+
+        _loteCts = new CancellationTokenSource();
+        LoteEmAndamento = true;
+        EnvioAutomaticoEmAndamento = true;
+        Erro = null;
+
+        try
+        {
+            int enviadas = 0;
+            int falhadas = 0;
+
+            for (int i = 0; i < itens.Count; i++)
+            {
+                if (_loteCts.Token.IsCancellationRequested)
+                    break;
+
+                var item = itens[i];
+                Progresso = $"Enviando {i + 1}/{itens.Count}: {item.DevedorNome}";
+
+                try
+                {
+                    var resultado = await notificacaoService.EnviarViaWhatsAppWebAsync(
+                        item.Id, automationService, _loteCts.Token);
+                    if (resultado) enviadas++;
+                    else falhadas++;
+                }
+                catch
+                {
+                    falhadas++;
+                }
+
+                // Delay entre envios para evitar bloqueio
+                if (i < itens.Count - 1)
+                {
+                    await Task.Delay(2000, _loteCts.Token);
+                }
+            }
+
+            var cancelado = _loteCts.Token.IsCancellationRequested;
+            eventos.MostrarToast(
+                $"Automação {(cancelado ? "cancelada" : "concluída")}: {enviadas} enviada(s), {falhadas} falhada(s).");
+        }
+        catch (OperationCanceledException)
+        {
+            eventos.MostrarToast("Automação cancelada pelo usuário.");
+        }
+        catch (Exception ex)
+        {
+            Erro = ex.Message;
+        }
+        finally
+        {
+            LoteEmAndamento = false;
+            EnvioAutomaticoEmAndamento = false;
+            Progresso = null;
+            _loteCts?.Dispose();
+            _loteCts = null;
+            await ExecutarAsync(RecarregarAsync);
+        }
+    });
 }
+
+public sealed record LoteProgresso(int Atual, int Total, string DevedorNome);

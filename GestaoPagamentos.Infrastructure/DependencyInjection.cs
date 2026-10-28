@@ -1,7 +1,9 @@
+using GestaoPagamentos.Application.Notificacoes;
+using GestaoPagamentos.Infrastructure.Notificacoes;
+using GestaoPagamentos.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using GestaoPagamentos.Infrastructure.Persistence;
 
 namespace GestaoPagamentos.Infrastructure;
 
@@ -28,6 +30,12 @@ public static class DependencyInjection
         }
 
         services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(connectionString));
+
+        // Registra serviço de automação WhatsApp
+        var whatsappConfig = configuration.GetSection("WhatsAppAutomation").Get<PlaywrightWhatsAppConfig>()
+            ?? new PlaywrightWhatsAppConfig();
+        services.AddSingleton(whatsappConfig);
+        services.AddScoped<IWhatsAppAutomationService, PlaywrightWhatsAppService>();
 
         return services;
     }

@@ -7,14 +7,17 @@ using GestaoPagamentos.Infrastructure.Persistence;
 using GestaoPagamentos.Wpf.Configuracoes;
 using GestaoPagamentos.Wpf.Dividas;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GestaoPagamentos.Wpf.Notificacoes;
 
 public sealed class NotificacaoService(
     IDbContextFactory<AppDbContext> dbFactory,
     ILauncher launcher,
+    ILogger<EnviarMensagemWhatsAppHandler> logger,
     IClock clock)
 {
+    private readonly ILogger _logger = logger;
     public async Task<IReadOnlyList<NotificacaoDto>> ListarAsync(
         StatusNotificacao? status = null,
         TipoNotificacao? tipo = null,
@@ -22,27 +25,49 @@ public sealed class NotificacaoService(
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
 
-        var query = db.Notificacoes.AsNoTracking();
-        if (status.HasValue) query = query.Where(n => n.Status == status.Value);
-        if (tipo.HasValue) query = query.Where(n => n.Tipo == tipo.Value);
-        var lista = await query.OrderByDescending(n => n.DataGeracao).ToListAsync(ct);
-        if (lista.Count == 0) return [];
+        var query = db.Notificacoes
+            .AsNoTracking();
 
-        var devedorIds = lista.Select(n => n.DevedorId).Distinct().ToList();
-        var devedores = await db.Devedores.AsNoTracking()
+        if (status.HasValue)
+            query = query.Where(n => n.Status == status.Value);
+
+        if (tipo.HasValue)
+            query = query.Where(n => n.Tipo == tipo.Value);
+
+        var lista = await query
+            .OrderByDescending(n => n.DataGeracao)
+            .ToListAsync(ct);
+
+        if (lista.Count == 0)
+            return [];
+
+        var devedorIds = lista
+            .Select(n => n.DevedorId)
+            .Distinct()
+            .ToList();
+
+        var devedores = await db.Devedores
+            .AsNoTracking()
             .Where(d => devedorIds.Contains(d.Id))
             .ToDictionaryAsync(d => d.Id, ct);
 
-        var parcelaIds = lista.Where(n => n.ParcelaId.HasValue).Select(n => n.ParcelaId!.Value).Distinct().ToList();
+        var parcelaIds = lista
+            .Where(n => n.ParcelaId.HasValue)
+            .Select(n => n.ParcelaId!.Value)
+            .Distinct()
+            .ToList();
+
         var parcelas = parcelaIds.Count == 0
             ? []
-            : (await DividaService.ComParcelas(db).AsNoTracking()
+            : (await DividaService.ComParcelas(db)
+                    .AsNoTracking()
                     .Where(d => d.Parcelas.Any(p => parcelaIds.Contains(p.Id)))
                     .ToListAsync(ct))
-                .SelectMany(d => d.Parcelas.Select(p => (Divida: d, Parcela: p)))
-                .ToDictionary(x => x.Parcela.Id);
+                    .SelectMany(d => d.Parcelas.Select(p => (Divida: d, Parcela: p)))
+                    .ToDictionary(x => x.Parcela.Id);
 
         var hoje = clock.Hoje;
+
         return lista.Select(n =>
         {
             devedores.TryGetValue(n.DevedorId, out var devedor);
@@ -225,5 +250,60 @@ public sealed class NotificacaoService(
         }
 
         return new LoteResultado(enviadas, puladas, false);
+    }
+
+    public async Task<bool> EnviarViaWhatsAppWebAsync(Guid notificacaoId, IWhatsAppAutomationService automationService, CancellationToken ct = default)
+    {
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+            var notificacao = await db.Notificacoes
+                .FirstOrDefaultAsync(n => n.Id == notificacaoId, ct);
+
+            if (notificacao is null)
+            {
+                throw new InvalidOperationException("Notificação não encontrada.");
+            }
+
+            var devedor = await db.Devedores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == notificacao.DevedorId, ct);
+            if (devedor is null)
+            {
+                throw new InvalidOperationException("Devedor não encontrado.");
+            }
+
+            if (!WhatsAppLinkBuilder.TelefoneValido(devedor.Telefone))
+            {
+                throw new InvalidOperationException($"Telefone inválido para o devedor {devedor.Nome}");
+            }
+
+            var telefoneNormalizado = WhatsAppLinkBuilder.NormalizarTelefone(devedor.Telefone)!;
+
+            // Executa comando de envio via automação
+            var handler = new EnviarMensagemWhatsAppHandler(automationService, logger);
+
+            var command = new EnviarMensagemWhatsAppCommand(
+                notificacaoId,
+                telefoneNormalizado,
+                notificacao.Mensagem);
+
+            var result = await handler.Handle(command, ct);
+
+            if (result.Sucesso)
+            {
+                // Marca notificação como enviada
+                notificacao.MarcarComoEnviada(clock.Agora);
+                await db.SaveChangesAsync(ct);
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception)
+        {
+            throw;
+        }
     }
 }

@@ -7,16 +7,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GestaoPagamentos.Wpf.Configuracoes;
 
-public sealed class ConfiguracaoService(IDbContextFactory<AppDbContext> dbFactory)
+public sealed class ConfiguracaoService(
+    IDbContextFactory<AppDbContext> dbFactory
+    )
 {
     internal static async Task<Configuracao> ObterEntidadeAsync(AppDbContext db, CancellationToken ct)
     {
-        var config = await db.Configuracoes.FirstOrDefaultAsync(ct);
-        if (config is not null) return config;
+        var config = await db.Configuracoes
+            .FirstOrDefaultAsync(ct);
+
+        if (config is not null)
+            return config;
 
         config = Configuracao.CriarPadrao();
         await db.Configuracoes.AddAsync(config, ct);
         await db.SaveChangesAsync(ct);
+
         return config;
     }
 
