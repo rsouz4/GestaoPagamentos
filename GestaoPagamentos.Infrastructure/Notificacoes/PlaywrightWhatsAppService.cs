@@ -12,6 +12,7 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
     private IBrowserContext? _context;
     private IPage? _page;
     private bool _isAuthenticated;
+    private bool _primeiraSessao;
 
     public PlaywrightWhatsAppService(
         ILogger<PlaywrightWhatsAppService> logger,
@@ -42,97 +43,52 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
 
             _logger.LogDebug("WhatsApp Web carregado. Verificando autenticação...");
 
-            // Aguarda um tempo para ver se o QR Code desaparece (indicador de autenticação bem-sucedida)
-            // O QR Code desaparece após escanear
-            var qrcodeSelector = "canvas";
-            var tentativasQrCode = 0;
-            const int maxTentativasQrCode = 24; // 24 * 5 segundos = 2 minutos de espera
-            bool qrcodeEncontrado = false;
-
-            _logger.LogInformation("Aguardando QR Code aparecer ou autenticação...");
-
-            while (tentativasQrCode < maxTentativasQrCode)
-            {
-                var qrcodePresente = await _page.QuerySelectorAsync(qrcodeSelector) is not null;
-
-                if (qrcodePresente && !qrcodeEncontrado)
-                {
-                    // QR Code encontrado pela primeira vez
-                    qrcodeEncontrado = true;
-                    _logger.LogInformation("QR Code encontrado! Aguardando escanear...");
-                }
-
-                if (qrcodeEncontrado && !qrcodePresente)
-                {
-                    // QR Code FOI encontrado e agora desapareceu = autenticado!
-                    _logger.LogInformation("QR Code desapareceu - autenticação bem-sucedida!");
-                    await Task.Delay(3000); // Aguarda mais um pouco para página carregar chats
-                    break;
-                }
-
-                if (!qrcodePresente && !qrcodeEncontrado && tentativasQrCode > 2)
-                {
-                    // Não encontrou QR Code por alguns segundos, pode estar já autenticado
-                    _logger.LogInformation("QR Code não encontrado, verificando se já está autenticado...");
-                    break;
-                }
-
-                tentativasQrCode++;
-
-                if (qrcodeEncontrado)
-                {
-                    _logger.LogDebug("QR Code visível, aguardando escanear... ({Tentativa}/{Max})", tentativasQrCode, maxTentativasQrCode);
-                }
-                else
-                {
-                    _logger.LogDebug("Aguardando QR Code aparecer... ({Tentativa}/{Max})", tentativasQrCode, maxTentativasQrCode);
-                }
-
-                await Task.Delay(5000); // Aguarda 5 segundos antes de checar novamente
-            }
-
-            // Tenta múltiplos seletores para detectar autenticação
+            // Seletores que só existem com o usuário logado (o canvas do QR Code não é confiável)
             var seletoresAutenticacao = new[]
             {
-                "div[data-testid='chat-list']",           // Seletor padrão
-                "div[role='region'][aria-label='Chat list']", // Alternativa
-                "div[aria-label='Chats']",                // Em português
-                "div[role='main']",                       // Contêiner principal autenticado
-                "div[data-testid='drawer']",              // Drawer de chats
-                "div[data-testid='pane-side']",           // Painel lateral de chats
-                "div[role='navigation']",                 // Navegação (chats)
-                "nav",                                     // Elemento nav genérico
-                "div._arig"                               // Classe genérica de container
+                "div[data-testid='chat-list']",
+                "div[data-testid='pane-side']",
+                "#pane-side",
+                "div[role='grid'][aria-label]",
+                "div[aria-label='Chats']",
+                "div[aria-label='Lista de conversas']"
             };
 
             bool autenticado = false;
             string seletorEncontrado = string.Empty;
+            bool qrCodeLogado = false;
 
-            foreach (var seletor in seletoresAutenticacao)
+            _logger.LogInformation("Aguardando autenticação (máx {Timeout})...", _config.TimeoutAutenticacao);
+
+            var limite = DateTime.UtcNow + _config.TimeoutAutenticacao;
+            while (!autenticado && DateTime.UtcNow < limite)
             {
-                try
+                ct.ThrowIfCancellationRequested();
+
+                foreach (var seletor in seletoresAutenticacao)
                 {
-                    _logger.LogDebug("Tentando seletor: {Seletor}", seletor);
-
-                    var elemento = await _page.WaitForSelectorAsync(seletor, new PageWaitForSelectorOptions
-                    {
-                        Timeout = 5000 // 5 segundos por seletor
-                    });
-
-                    if (elemento is not null)
+                    if (await _page.QuerySelectorAsync(seletor) is not null)
                     {
                         autenticado = true;
                         seletorEncontrado = seletor;
-                        _logger.LogInformation("Elemento de autenticação encontrado com seletor: {Seletor}", seletor);
                         break;
                     }
                 }
-                catch (PlaywrightException ex)
+
+                if (autenticado)
+                    break;
+
+                if (!qrCodeLogado && await _page.QuerySelectorAsync("canvas") is not null)
                 {
-                    // Continua para próximo seletor
-                    _logger.LogDebug("Seletor não encontrado: {Seletor} - {Exception}", seletor, ex.Message);
+                    qrCodeLogado = true;
+                    _logger.LogInformation("QR Code visível. Aguardando escanear...");
                 }
+
+                await Task.Delay(1000, ct);
             }
+
+            if (autenticado)
+                await Task.Delay(2000, ct);
 
             // Se nenhum seletor funcionou, verifica por URL e tira screenshot para debug
             if (!autenticado)
@@ -159,13 +115,7 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
                 {
                     _logger.LogWarning(screenshotEx, "Erro ao tirar screenshot para debug");
                 }
-
-                if (url.Contains("web.whatsapp.com") && !url.Contains("/?code=") && !url.Contains("login"))
-                {
-                    _logger.LogInformation("URL sugere autenticação bem-sucedida, mesmo sem seletor encontrado");
-                    autenticado = true;
                 }
-            }
 
             if (autenticado)
             {
@@ -174,6 +124,14 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
 
                 // Salva a sessão para reutilização futura
                 await SalvarSessaoAsync();
+
+                if (_primeiraSessao)
+                {
+                    _logger.LogInformation("Primeira autenticação concluída. Fechando navegador visível e reabrindo em modo headless");
+                    await FecharAsync(ct);
+                    await InicializarAsync(ct);
+                    _isAuthenticated = true;
+                }
 
                 return true;
             }
@@ -283,6 +241,13 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
         }
     }
 
+    private const string MarcadorAutenticado = "autenticado.flag";
+
+    private static string ObterCaminhoSessao() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "GestaoPagamentos",
+        "WhatsAppProfile");
+
     private async Task SalvarSessaoAsync()
     {
         try
@@ -290,22 +255,13 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
             if (_context is null)
                 return;
 
-            var sessionPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "GestaoPagamentos",
-                "WhatsAppSession"
-            );
-
+            var sessionPath = ObterCaminhoSessao();
             Directory.CreateDirectory(sessionPath);
 
-            var storageStatePath = Path.Combine(sessionPath, "storage_state.json");
+            var marcador = Path.Combine(sessionPath, MarcadorAutenticado);
+            await File.WriteAllTextAsync(marcador, DateTime.UtcNow.ToString("O"));
 
-            await _context.StorageStateAsync(new BrowserContextStorageStateOptions
-            {
-                Path = storageStatePath
-            });
-
-            _logger.LogInformation("Sessão salva com sucesso em: {StorageStatePath}", storageStatePath);
+            _logger.LogInformation("Sessão marcada como autenticada. Perfil em: {SessionPath}", sessionPath);
         }
         catch (Exception ex)
         {
@@ -353,56 +309,27 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
 
             var playwright = await Playwright.CreateAsync();
 
-            var sessionPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "GestaoPagamentos",
-                "WhatsAppSession"
-            );
-
-            // Cria diretório se não existir
+            var sessionPath = ObterCaminhoSessao();
             Directory.CreateDirectory(sessionPath);
 
-            _logger.LogInformation("Caminho da sessão: {SessionPath}", sessionPath);
+            _logger.LogInformation("Perfil da sessão: {SessionPath}", sessionPath);
 
-            var semSessaoSalva = !File.Exists(Path.Combine(sessionPath, "storage_state.json"));
+            var semSessaoSalva = !File.Exists(Path.Combine(sessionPath, MarcadorAutenticado));
+            _primeiraSessao = semSessaoSalva;
             var headless = _config.ModoHeadless && !semSessaoSalva;
 
             if (semSessaoSalva)
                 _logger.LogInformation("Sem sessão salva: abrindo navegador visível para escanear o QR Code");
 
-            _browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            // Perfil persistente: mantém IndexedDB/localStorage/cookies, necessários para o login do WhatsApp Web
+            _context = await playwright.Chromium.LaunchPersistentContextAsync(sessionPath, new BrowserTypeLaunchPersistentContextOptions
             {
                 Headless = headless,
-                Args = _config.ArgsAdicionalBrowser?.ToList()
+                Args = _config.ArgsAdicionalBrowser?.ToList(),
+                UserAgent = _config.UserAgent
             });
 
-            var contextOptions = new BrowserNewContextOptions
-            {
-                UserAgent = _config.UserAgent
-            };
-
-            // Se a sessão anterior existe, carrega os cookies/storage
-            var storageStatePath = Path.Combine(sessionPath, "storage_state.json");
-            if (File.Exists(storageStatePath))
-            {
-                try
-                {
-                    contextOptions.StorageStatePath = storageStatePath;
-                    _logger.LogInformation("Carregando sessão salva de: {StorageStatePath}", storageStatePath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Erro ao carregar sessão anterior, será criada uma nova");
-                    contextOptions.StorageStatePath = null;
-                }
-            }
-            else
-            {
-                _logger.LogInformation("Nenhuma sessão anterior encontrada. Uma nova será criada.");
-            }
-
-            _context = await _browser.NewContextAsync(contextOptions);
-            _page = await _context.NewPageAsync();
+            _page = _context.Pages.FirstOrDefault() ?? await _context.NewPageAsync();
 
             _logger.LogInformation("Playwright inicializado com sucesso");
         }
