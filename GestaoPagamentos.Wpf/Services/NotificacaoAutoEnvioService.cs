@@ -38,11 +38,15 @@ public sealed class NotificacaoAutoEnvioService(
             _executando = true;
             logger.LogInformation("Iniciando auto-envio de notificações ao startup");
 
-            // Busca notificações pendentes de atraso
-            var notificacoes = await notificacaoService.ListarAsync(
-                StatusNotificacao.Pendente,
-                TipoNotificacao.Atraso,
-                ct);
+            await notificacaoService.GerarAsync(ct);
+
+            // Busca notificações pendentes de atraso e de vencimento
+            var notificacoes = (await notificacaoService.ListarAsync(
+                    StatusNotificacao.Pendente,
+                    null,
+                    ct))
+                .Where(n => n.Tipo is TipoNotificacao.Atraso or TipoNotificacao.Vencimento)
+                .ToList();
 
             if (notificacoes.Count == 0)
             {
@@ -50,14 +54,11 @@ public sealed class NotificacaoAutoEnvioService(
                 return;
             }
 
-            // Filtra apenas as com telefone válido
-            var comTelefonValido = notificacoes
-                .Where(n => n.TelefoneValido)
-                .ToList();
+            var comTelefonValido = notificacoes.ToList();
 
             if (comTelefonValido.Count == 0)
             {
-                logger.LogInformation("Notificações pendentes encontradas, mas nenhuma com telefone válido");
+                logger.LogInformation("Nenhuma notificação pendente para enviar");
                 return;
             }
 

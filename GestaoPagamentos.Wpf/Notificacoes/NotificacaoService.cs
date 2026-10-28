@@ -79,7 +79,6 @@ public sealed class NotificacaoService(
                 n.DevedorId,
                 devedor?.Nome ?? "-",
                 devedor?.Telefone,
-                WhatsAppLinkBuilder.TelefoneValido(devedor?.Telefone),
                 n.Tipo,
                 n.Status,
                 n.Mensagem,
@@ -225,12 +224,6 @@ public sealed class NotificacaoService(
 
             var item = itens[i];
             progresso?.Report(new LoteProgresso(i + 1, itens.Count, item.DevedorNome));
-
-            if (!item.TelefoneValido)
-            {
-                puladas++;
-                continue;
-            }
 
             var resultado = await EnviarAsync(item.Id, null, CancellationToken.None);
             if (resultado.Sucesso) enviadas++;
