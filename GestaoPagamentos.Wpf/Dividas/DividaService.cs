@@ -110,6 +110,25 @@ public sealed class DividaService(
             return Result.Falha(ex.Message);
         }
     }
+    public async Task<Result> AlterarTaxaJurosAsync(Guid dividaId, decimal taxaJuros, CancellationToken ct = default)
+    {
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+            var divida = await ComParcelas(db).FirstOrDefaultAsync(d => d.Id == dividaId, ct);
+            if (divida is null) return Result.Falha("Dívida não encontrada.");
+
+            divida.AlterarTaxaJuros(taxaJuros);
+            await db.SaveChangesAsync(ct);
+            return Result.Ok();
+        }
+        catch (DomainException ex)
+        {
+            return Result.Falha(ex.Message);
+        }
+    }
+
     public async Task<Result> CancelarAsync(Guid dividaId, CancellationToken ct = default)
     {
         try

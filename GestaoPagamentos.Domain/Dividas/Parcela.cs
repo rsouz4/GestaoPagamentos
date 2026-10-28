@@ -38,6 +38,8 @@ public class Parcela : Entity<Guid>
         DataVencimento = vencimento
     };
 
+    internal void DefinirValorPrevisto(decimal valor) => ValorPrevisto = valor;
+
     public decimal MultaEm(DateOnly data) => Simular(data).Multa;
 
     public decimal ValorRestanteEm(DateOnly data)

@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GestaoPagamentos.Application.Dividas;
 using GestaoPagamentos.Application.Pagamentos;
@@ -28,6 +28,25 @@ public sealed partial class DividaDetalheViewModel(
     [ObservableProperty] private string? _valorPagamento;
     [ObservableProperty] private DateTime _dataPagamento = DateTime.Today;
     [ObservableProperty] private string? _observacaoPagamento;
+
+    [ObservableProperty] private string? _taxaJurosTexto;
+
+    partial void OnDividaChanged(DividaDetalheDto? value) =>
+        TaxaJurosTexto = value is null ? null : (value.TaxaJuros * 100m).ToString("0.##");
+
+    [RelayCommand]
+    private Task AlterarTaxaJurosAsync() => ExecutarAsync(async () =>
+    {
+        if (!Parsing.TentarDecimal(TaxaJurosTexto, out var percentual) || percentual < 0m)
+        { Erro = "Taxa de juros inválida."; return; }
+
+        var r = await dividaService.AlterarTaxaJurosAsync(_dividaId, percentual / 100m);
+        if (!r.Sucesso) { Erro = r.Erro; return; }
+
+        eventos.MostrarToast("Juros atualizados.");
+        eventos.NotificarNotificacoesAlteradas();
+        await RecarregarInternoAsync();
+    });
 
     public bool PodeEditar => Divida?.Status == StatusDivida.Ativa;
 
