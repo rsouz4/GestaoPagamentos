@@ -27,7 +27,8 @@ public sealed class Navigator(IServiceProvider services) : INavigator
         Atual = viewModel;
         Navegou?.Invoke();
 
-        if (inicializar is not null) await inicializar(viewModel);
+        if (inicializar is not null)
+            await inicializar(viewModel);
         else await viewModel.InicializarAsync();
     }
 

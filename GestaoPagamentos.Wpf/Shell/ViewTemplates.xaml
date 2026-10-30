@@ -4,7 +4,12 @@
                     xmlns:not="clr-namespace:GestaoPagamentos.Wpf.Notificacoes"
                     xmlns:cfg="clr-namespace:GestaoPagamentos.Wpf.Configuracoes"
                     xmlns:dev="clr-namespace:GestaoPagamentos.Wpf.Devedores"
-                    xmlns:div="clr-namespace:GestaoPagamentos.Wpf.Dividas">
+                    xmlns:div="clr-namespace:GestaoPagamentos.Wpf.Dividas"
+                    xmlns:logs="clr-namespace:GestaoPagamentos.Wpf.Logs">
+
+    <DataTemplate DataType="{x:Type logs:LogsViewModel}">
+        <logs:LogsView />
+    </DataTemplate>
 
     <DataTemplate DataType="{x:Type dash:DashboardViewModel}">
         <dash:DashboardView />

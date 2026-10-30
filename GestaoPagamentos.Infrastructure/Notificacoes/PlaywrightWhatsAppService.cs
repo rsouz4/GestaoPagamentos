@@ -115,7 +115,7 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
                 {
                     _logger.LogWarning(screenshotEx, "Erro ao tirar screenshot para debug");
                 }
-                }
+            }
 
             if (autenticado)
             {
@@ -161,7 +161,8 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
             if (_page is null)
                 await InicializarAsync(ct);
 
-            _logger.LogInformation("Iniciando envio de mensagem para {Telefone}", telefone);
+            var telefoneMascarado = MascararTelefone(telefone);
+            _logger.LogInformation("Iniciando envio de mensagem para {TelefoneMascarado}", telefoneMascarado);
 
             // Verifica autenticação
             var autenticado = await VerificarAutenticacaoAsync(ct);
@@ -174,7 +175,7 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
             // Constrói link WhatsApp
             var linkWhatsApp = $"https://web.whatsapp.com/send?phone={telefone}";
 
-            _logger.LogDebug("Acessando link WhatsApp: {Link}", linkWhatsApp);
+            _logger.LogDebug("Acessando link WhatsApp para {TelefoneMascarado}", telefoneMascarado);
             await _page!.GotoAsync(linkWhatsApp, new PageGotoOptions
             {
                 WaitUntil = WaitUntilState.NetworkIdle,
@@ -194,7 +195,7 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
             var caixaMensagem = await _page.QuerySelectorAsync("div[contenteditable='true'][role='textbox']");
             if (caixaMensagem is null)
             {
-                _logger.LogError("Caixa de mensagem não encontrada");
+                _logger.LogError("Caixa de mensagem não encontrada para {TelefoneMascarado}", telefoneMascarado);
                 return false;
             }
 
@@ -221,12 +222,13 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
 
             await _page.Keyboard.PressAsync("Enter");
 
-            _logger.LogInformation("Mensagem enviada com sucesso para {Telefone}", telefone);
+            _logger.LogInformation("Mensagem enviada com sucesso para {TelefoneMascarado}", telefoneMascarado);
             return true;
         }
         catch (PlaywrightException ex)
         {
-            _logger.LogError(ex, "Erro Playwright ao enviar mensagem para {Telefone}", telefone);
+            var telefoneMascarado = MascararTelefone(telefone);
+            _logger.LogError(ex, "Erro Playwright ao enviar mensagem para {TelefoneMascarado}", telefoneMascarado);
             return false;
         }
         catch (OperationCanceledException)
@@ -236,7 +238,8 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro inesperado ao enviar mensagem para {Telefone}", telefone);
+            var telefoneMascarado = MascararTelefone(telefone);
+            _logger.LogError(ex, "Erro inesperado ao enviar mensagem para {TelefoneMascarado}", telefoneMascarado);
             return false;
         }
     }
@@ -247,6 +250,20 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "GestaoPagamentos",
         "WhatsAppProfile");
+
+    /// <summary>
+    /// Mascara um telefone para exibição em logs, mantendo apenas os últimos 3 dígitos.
+    /// Exemplo: 5511999999999 → 555...1111999999999
+    /// </summary>
+    private static string MascararTelefone(string telefone)
+    {
+        if (string.IsNullOrEmpty(telefone) || telefone.Length < 4)
+            return "TELEFONE_MASCARADO";
+
+        var ultimosTres = telefone[^3..];
+        var primeirosDois = telefone[..2];
+        return $"{primeirosDois}...{ultimosTres}";
+    }
 
     private async Task SalvarSessaoAsync()
     {
@@ -261,7 +278,7 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
             var marcador = Path.Combine(sessionPath, MarcadorAutenticado);
             await File.WriteAllTextAsync(marcador, DateTime.UtcNow.ToString("O"));
 
-            _logger.LogInformation("Sessão marcada como autenticada. Perfil em: {SessionPath}", sessionPath);
+            _logger.LogInformation("Sessão marcada como autenticada. Perfil salvo localmente");
         }
         catch (Exception ex)
         {
@@ -307,6 +324,9 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
         {
             _logger.LogInformation("Inicializando Playwright com suporte a persistência de sessão");
 
+            // Diagnóstico do Chrome/Chromium
+            DiagnosticarChrome();
+
             var playwright = await Playwright.CreateAsync();
 
             var sessionPath = ObterCaminhoSessao();
@@ -333,10 +353,38 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
 
             _logger.LogInformation("Playwright inicializado com sucesso");
         }
+        catch (Microsoft.Playwright.PlaywrightException pex) when (pex.Message.Contains("Executable doesn't exist"))
+        {
+            _logger.LogError(pex, "Chrome não está instalado. Execute: ./playwright.ps1 install chromium");
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao inicializar Playwright");
             throw;
+        }
+    }
+
+    private void DiagnosticarChrome()
+    {
+        try
+        {
+            var caminhoChrome = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ms-playwright", "chromium-1248", "chrome-win64", "chrome.exe");
+
+            if (File.Exists(caminhoChrome))
+            {
+                _logger.LogInformation("✅ Chrome instalado em: {ChromePath}", caminhoChrome);
+            }
+            else
+            {
+                _logger.LogWarning("❌ Chrome não encontrado em: {ChromePath}", caminhoChrome);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Erro ao diagnosticar Chrome");
         }
     }
 
@@ -346,15 +394,3 @@ public sealed class PlaywrightWhatsAppService : IWhatsAppAutomationService, IAsy
     }
 }
 
-public sealed class PlaywrightWhatsAppConfig
-{
-    public bool ModoHeadless { get; set; } = true;
-    public TimeSpan TimeoutCarregamentoPagina { get; set; } = TimeSpan.FromSeconds(30);
-    public TimeSpan TimeoutAutenticacao { get; set; } = TimeSpan.FromSeconds(120);
-    public TimeSpan TimeoutCampoDeMensagem { get; set; } = TimeSpan.FromSeconds(15);
-    public int DelayAntesDeDigitar { get; set; } = 800;
-    public int DelayEntreCaracteres { get; set; } = 50;
-    public int DelayAntesDeEnviar { get; set; } = 1500;
-    public string UserAgent { get; set; } = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
-    public IEnumerable<string>? ArgsAdicionalBrowser { get; set; }
-}
