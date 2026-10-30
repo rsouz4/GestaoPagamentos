@@ -1,8 +1,10 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:c="clr-namespace:GestaoPagamentos.Wpf.Common">
+                    xmlns:c="clr-namespace:GestaoPagamentos.Wpf.Common"
+                    xmlns:l="clr-namespace:GestaoPagamentos.Wpf.Logs">
 
     <c:StatusTextoConverter x:Key="StatusTexto" />
     <c:StatusBrushConverter x:Key="StatusBrush" />
+    <l:LogLevelColorConverter x:Key="LogLevelColorConverter" />
 
 </ResourceDictionary>

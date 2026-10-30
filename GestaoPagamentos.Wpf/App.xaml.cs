@@ -9,10 +9,12 @@ using GestaoPagamentos.Wpf.Devedores;
 using GestaoPagamentos.Wpf.Dividas;
 using GestaoPagamentos.Wpf.Notificacoes;
 using GestaoPagamentos.Wpf.Services;
+using GestaoPagamentos.Wpf.Services.Logging;
 using GestaoPagamentos.Wpf.Shell;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Markup;
@@ -22,6 +24,7 @@ namespace GestaoPagamentos.Wpf;
 public partial class App : System.Windows.Application
 {
     private IHost? _host;
+    private ILogger<App>? _logger;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -31,6 +34,7 @@ public partial class App : System.Windows.Application
         try
         {
             _host = CriarHost(e.Args);
+            _logger = _host.Services.GetRequiredService<ILogger<App>>();
 
             using (var scope = _host.Services.CreateScope())
             {
@@ -65,6 +69,8 @@ public partial class App : System.Windows.Application
             if (_host is null)
                 return;
 
+            _logger?.LogInformation("Iniciando auto-envio de notificações em background");
+
             // Aguarda um pouco para garantir que UI está completamente carregada
             await Task.Delay(1000);
 
@@ -77,12 +83,12 @@ public partial class App : System.Windows.Application
                 // Executa em background sem bloquear UI
                 await autoEnvioService.ExecutarEnvioAutomaticoAoIniciarAsync();
             }
+
+            _logger?.LogInformation("Auto-envio de notificações concluído");
         }
         catch (Exception ex)
         {
-            // Log silencioso - não interrompe a aplicação
-            System.Diagnostics.Debug.WriteLine(
-                $"Erro no auto-envio de notificações: {ex.Message}");
+            _logger?.LogError(ex, "Erro no auto-envio de notificações em background");
         }
     }
 
@@ -104,6 +110,12 @@ public partial class App : System.Windows.Application
             Args = args,
             ContentRootPath = AppContext.BaseDirectory
         });
+
+        // Configurar logging centralizado
+        var logStore = new InMemoryLogStore();
+        builder.Services.AddSingleton(logStore);
+        builder.Logging.ClearProviders();
+        builder.Logging.AddProvider(new InMemoryLogProvider(logStore, minLevel: LogLevel.Debug));
 
         builder.Services.AddSingleton<IClock, SystemClock>();
         builder.Services.AddInfrastructure(builder.Configuration);
@@ -128,11 +140,13 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<DividasViewModel>();
         builder.Services.AddTransient<DividaFormViewModel>();
         builder.Services.AddTransient<DividaDetalheViewModel>();
+        builder.Services.AddTransient<GestaoPagamentos.Wpf.Logs.LogsViewModel>();
 
         builder.Services.AddSingleton(new NavItem("dashboard", "Dashboard", "📊", typeof(DashboardViewModel)));
         builder.Services.AddSingleton(new NavItem(MainViewModel.ChaveNotificacoes, "Notificações", "🔔", typeof(NotificacoesViewModel)));
         builder.Services.AddSingleton(new NavItem("devedores", "Devedores", "👤", typeof(DevedoresViewModel)));
         builder.Services.AddSingleton(new NavItem("dividas", "Dívidas", "💳", typeof(DividasViewModel)));
+        builder.Services.AddSingleton(new NavItem("logs", "Logs", "📺", typeof(GestaoPagamentos.Wpf.Logs.LogsViewModel)));
         builder.Services.AddSingleton(new NavItem("configuracoes", "Configurações", "⚙", typeof(ConfiguracoesViewModel)));
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
