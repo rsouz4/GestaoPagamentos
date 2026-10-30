@@ -82,6 +82,35 @@ public class Divida : Entity<Guid>
         Observacao = string.IsNullOrWhiteSpace(observacao) ? null : observacao.Trim();
     }
 
+    public void AlterarTaxaJuros(decimal taxaJuros)
+    {
+        if (Status == StatusDivida.Cancelada)
+            throw new DomainException("Dívida cancelada não pode ser alterada.");
+        if (taxaJuros < 0m)
+            throw new DomainException("A taxa de juros não pode ser negativa.");
+
+        TaxaJuros = taxaJuros;
+        ValorTotal = decimal.Round(ValorEmprestado * (1m + taxaJuros), 2, MidpointRounding.AwayFromZero);
+
+        var comPagamento = _parcelas.Where(p => p.Pagamentos.Count > 0).ToList();
+        var semPagamento = _parcelas.Where(p => p.Pagamentos.Count == 0).OrderBy(p => p.Numero).ToList();
+        if (semPagamento.Count == 0) return;
+
+        var restante = ValorTotal - comPagamento.Sum(p => p.ValorPrevisto);
+        if (restante < 0m) restante = 0m;
+
+        var valorBase = decimal.Round(restante / semPagamento.Count, 2, MidpointRounding.ToZero);
+        var acumulado = 0m;
+        for (var i = 0; i < semPagamento.Count; i++)
+        {
+            var valor = i == semPagamento.Count - 1 ? restante - acumulado : valorBase;
+            acumulado += valor;
+            semPagamento[i].DefinirValorPrevisto(valor);
+        }
+
+        RecalcularStatus();
+    }
+
     public Pagamento RegistrarPagamento(Guid parcelaId, decimal valor, DateOnly data, string? observacao = null)
     {
         if (Status == StatusDivida.Cancelada)

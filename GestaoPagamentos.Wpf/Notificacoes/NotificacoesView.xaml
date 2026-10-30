@@ -4,7 +4,6 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -14,32 +13,23 @@
         </Grid.ColumnDefinitions>
 
         <DockPanel Grid.ColumnSpan="3" Margin="0,0,0,12">
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Content="Gerar notificações" Style="{StaticResource SecondaryButton}"
-                        Command="{Binding GerarCommand}" />
-                <Button Content="Enviar todas os atrasados" Style="{StaticResource DangerButton}"
-                        Command="{Binding EnviarAtrasadosCommand}" Margin="0" />
+            <Button DockPanel.Dock="Right" Content="Atualizar" Style="{StaticResource SecondaryButton}"
+                    Command="{Binding CarregarCommand}" Margin="0" />
+            <StackPanel>
+                <TextBlock Text="Log de notificações enviadas" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="As notificações são geradas e enviadas automaticamente." Style="{StaticResource MutedText}" />
             </StackPanel>
-            <TextBlock Text="Notificações" Style="{StaticResource PageTitle}" />
         </DockPanel>
 
-        <DockPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,12"
-                   Visibility="{Binding LoteEmAndamento, Converter={StaticResource BoolToVisibility}}">
-            <Button DockPanel.Dock="Right" Content="Cancelar lote" Style="{StaticResource SecondaryButton}"
-                    Command="{Binding CancelarLoteCommand}" Margin="0" />
-            <TextBlock Text="{Binding Progresso}" FontWeight="SemiBold" />
-        </DockPanel>
-
-        <Border Grid.Row="2" Style="{StaticResource Card}">
-            <DataGrid ItemsSource="{Binding Itens}" SelectedItem="{Binding Selecionada}">
+        <Border Grid.Row="1" Style="{StaticResource Card}">
+            <DataGrid ItemsSource="{Binding Itens}" SelectedItem="{Binding Selecionada}" IsReadOnly="True">
                 <DataGrid.Columns>
+                    <DataGridTextColumn Header="Enviada em" Binding="{Binding DataEnvio, StringFormat=g}" Width="130" />
                     <DataGridTemplateColumn Header="Tipo" Width="130">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource StatusPill}"
-                                        Background="{Binding Tipo, Converter={StaticResource StatusBrush}, ConverterParameter=bg}">
-                                    <TextBlock Text="{Binding Tipo, Converter={StaticResource StatusTexto}}" FontSize="12"
-                                               Foreground="{Binding Tipo, Converter={StaticResource StatusBrush}}" />
+                                <Border Style="{StaticResource StatusPill}" Background="{Binding Tipo, Converter={StaticResource StatusBrush}, ConverterParameter=bg}">
+                                    <TextBlock Text="{Binding Tipo, Converter={StaticResource StatusTexto}}" FontSize="12" Foreground="{Binding Tipo, Converter={StaticResource StatusBrush}}" />
                                 </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -49,24 +39,15 @@
                     <DataGridTextColumn Header="Parcela" Binding="{Binding NumeroParcela}" Width="70" />
                     <DataGridTextColumn Header="Vencimento" Binding="{Binding Vencimento, StringFormat=d}" Width="100" />
                     <DataGridTextColumn Header="Valor" Binding="{Binding Valor, StringFormat=C}" Width="100" />
-                    <DataGridCheckBoxColumn Header="Fone OK" Binding="{Binding TelefoneValido, Mode=OneWay}" Width="70" />
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
 
-        <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
             <StackPanel>
-                <TextBlock Text="Mensagem" Style="{StaticResource SectionTitle}" />
-                <TextBox Text="{Binding Mensagem, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
-                         TextWrapping="Wrap" Height="200" VerticalScrollBarVisibility="Auto" />
-                <TextBlock Text="{Binding Erro}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"
-                           Margin="0,10,0,0" />
-                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                    <Button Content="Enviar no WhatsApp" Style="{StaticResource SuccessButton}"
-                            Command="{Binding EnviarCommand}" />
-                    <Button Content="Ignorar" Style="{StaticResource SecondaryButton}"
-                            Command="{Binding IgnorarCommand}" />
-                </StackPanel>
+                <TextBlock Text="Mensagem enviada" Style="{StaticResource SectionTitle}" />
+                <TextBox Text="{Binding Mensagem, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="240" VerticalScrollBarVisibility="Auto" />
+                <TextBlock Text="{Binding Erro}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,10,0,0" />
             </StackPanel>
         </Border>
     </Grid>

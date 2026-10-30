@@ -8,7 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GestaoPagamentos.Wpf.Dividas;
 
-public sealed class DividaService(IDbContextFactory<AppDbContext> dbFactory, IClock clock)
+public sealed class DividaService(
+    IDbContextFactory<AppDbContext> dbFactory,
+    IClock clock)
 {
     internal static IQueryable<Divida> ComParcelas(AppDbContext db) =>
         db.Dividas
@@ -62,7 +64,6 @@ public sealed class DividaService(IDbContextFactory<AppDbContext> dbFactory, ICl
 
         return Result.Ok(DividaMapper.ParaDetalhe(divida, devedor, clock.Hoje));
     }
-
     public async Task<Result<Guid>> CriarAsync(CriarDividaCommand cmd, CancellationToken ct = default)
     {
         try
@@ -81,7 +82,8 @@ public sealed class DividaService(IDbContextFactory<AppDbContext> dbFactory, ICl
                 cmd.QuantidadeParcelas,
                 cmd.Observacao);
 
-            await db.Dividas.AddAsync(divida, ct);
+            await db.Dividas
+                .AddAsync(divida, ct);
             await db.SaveChangesAsync(ct);
             return Result.Ok(divida.Id);
         }
@@ -90,7 +92,6 @@ public sealed class DividaService(IDbContextFactory<AppDbContext> dbFactory, ICl
             return Result.Falha<Guid>(ex.Message);
         }
     }
-
     public async Task<Result> AtualizarAsync(AtualizarDividaCommand cmd, CancellationToken ct = default)
     {
         try
@@ -101,6 +102,24 @@ public sealed class DividaService(IDbContextFactory<AppDbContext> dbFactory, ICl
             if (divida is null) return Result.Falha("Dívida não encontrada.");
 
             divida.AtualizarDados(cmd.Descricao, cmd.Observacao);
+            await db.SaveChangesAsync(ct);
+            return Result.Ok();
+        }
+        catch (DomainException ex)
+        {
+            return Result.Falha(ex.Message);
+        }
+    }
+    public async Task<Result> AlterarTaxaJurosAsync(Guid dividaId, decimal taxaJuros, CancellationToken ct = default)
+    {
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+            var divida = await ComParcelas(db).FirstOrDefaultAsync(d => d.Id == dividaId, ct);
+            if (divida is null) return Result.Falha("Dívida não encontrada.");
+
+            divida.AlterarTaxaJuros(taxaJuros);
             await db.SaveChangesAsync(ct);
             return Result.Ok();
         }

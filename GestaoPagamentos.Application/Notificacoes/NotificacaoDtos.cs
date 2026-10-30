@@ -7,7 +7,6 @@ public sealed record NotificacaoDto(
     Guid DevedorId,
     string DevedorNome,
     string? Telefone,
-    bool TelefoneValido,
     TipoNotificacao Tipo,
     StatusNotificacao Status,
     string Mensagem,
