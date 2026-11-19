@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Importação Supabase: gerados com dados reais, nunca commitar
+db/import/
+*.sqlite
+*.sqlite3
+/gestao_pagamentos*.db
