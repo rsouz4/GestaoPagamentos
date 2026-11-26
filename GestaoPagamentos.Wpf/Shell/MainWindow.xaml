@@ -24,6 +24,14 @@
                     <TextBlock Text="Controle financeiro" Foreground="{StaticResource BorderBrushSoft}" FontSize="12" Margin="0,6,0,0" />
                 </StackPanel>
 
+                <StackPanel DockPanel.Dock="Bottom" Margin="22,10,22,20"
+                            Visibility="{Binding ExibirSair, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding EmailLogado}" Foreground="#93C5FD" FontSize="12"
+                               TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
+                    <Button Content="Sair" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
+                            Command="{Binding SairCommand}" />
+                </StackPanel>
+
                 <ListBox ItemsSource="{Binding Itens}"
                          SelectedItem="{Binding ItemSelecionado}"
                          Background="Transparent" BorderThickness="0"

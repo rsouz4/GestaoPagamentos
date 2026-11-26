@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using GestaoPagamentos.Application.Autenticacao;
 using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Wpf.Common;
 using GestaoPagamentos.Wpf.Notificacoes;
@@ -13,9 +15,15 @@ public sealed partial class MainViewModel : ViewModelBase
 
     private readonly INavigator _navigator;
     private readonly NotificacaoService _notificacaoService;
+    private readonly IAuthService _authService;
     private CancellationTokenSource? _toastCts;
 
     public ObservableCollection<NavItem> Itens { get; }
+
+    /// <summary>O botão Sair só aparece quando o app usa login.</summary>
+    public bool ExibirSair => _authService.ExigeLogin;
+
+    public string EmailLogado => _authService.EmailAtual ?? string.Empty;
 
     [ObservableProperty]
     private NavItem? _itemSelecionado;
@@ -33,10 +41,12 @@ public sealed partial class MainViewModel : ViewModelBase
         IEnumerable<NavItem> itens,
         INavigator navigator,
         AppEvents eventos,
-        NotificacaoService notificacaoService)
+        NotificacaoService notificacaoService,
+        IAuthService authService)
     {
         _navigator = navigator;
         _notificacaoService = notificacaoService;
+        _authService = authService;
         Itens = new ObservableCollection<NavItem>(itens);
 
         _navigator.Navegou += () => Conteudo = _navigator.Atual;
@@ -48,6 +58,14 @@ public sealed partial class MainViewModel : ViewModelBase
     {
         await AtualizarBadgeAsync();
         ItemSelecionado = Itens.FirstOrDefault();
+    }
+
+    /// <summary>Encerra a sessão, apaga a que estava guardada e fecha o app; na próxima abertura pede o login.</summary>
+    [RelayCommand]
+    private async Task SairAsync()
+    {
+        await _authService.SairAsync();
+        System.Windows.Application.Current.Shutdown();
     }
 
     partial void OnItemSelecionadoChanged(NavItem? value)

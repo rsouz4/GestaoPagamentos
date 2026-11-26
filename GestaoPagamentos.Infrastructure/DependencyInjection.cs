@@ -1,6 +1,8 @@
+using GestaoPagamentos.Application.Autenticacao;
 using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Application.Persistence;
 using GestaoPagamentos.Infrastructure.Notificacoes;
+using GestaoPagamentos.Infrastructure.Nuvem;
 using GestaoPagamentos.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +34,21 @@ public static class DependencyInjection
 
         services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(connectionString));
         services.AddSingleton<IUnitOfWorkFactory, EfUnitOfWorkFactory>();
+
+        // Login: "Nenhuma" (SQLite local, abre direto) ou "Supabase" (e-mail e senha). O app que usa
+        // este método precisa registrar um ISessionStore para guardar a sessão.
+        var modoAutenticacao = configuration["Autenticacao:Modo"] ?? "Nenhuma";
+        if (string.Equals(modoAutenticacao, "Supabase", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddSingleton(configuration.GetSection("Supabase").Get<SupabaseConfig>() ?? new SupabaseConfig());
+            services.AddSingleton<SessaoPersistenteSupabase>();
+            services.AddSingleton<ClienteSupabase>();
+            services.AddSingleton<IAuthService, SupabaseAuthService>();
+        }
+        else
+        {
+            services.AddSingleton<IAuthService, SemAutenticacao>();
+        }
 
         // Registra serviço de automação WhatsApp
         var whatsappConfig = configuration.GetSection("WhatsAppAutomation").Get<PlaywrightWhatsAppConfig>()

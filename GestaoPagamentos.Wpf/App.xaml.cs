@@ -1,3 +1,4 @@
+using GestaoPagamentos.Application.Autenticacao;
 using GestaoPagamentos.Application.Common;
 using GestaoPagamentos.Application.Configuracoes;
 using GestaoPagamentos.Application.Devedores;
@@ -11,14 +12,17 @@ using GestaoPagamentos.Wpf.Configuracoes;
 using GestaoPagamentos.Wpf.Dashboard;
 using GestaoPagamentos.Wpf.Devedores;
 using GestaoPagamentos.Wpf.Dividas;
+using GestaoPagamentos.Wpf.Login;
 using GestaoPagamentos.Wpf.Notificacoes;
 using GestaoPagamentos.Wpf.Services;
 using GestaoPagamentos.Wpf.Services.Logging;
 using GestaoPagamentos.Wpf.Shell;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Markup;
 
@@ -34,6 +38,9 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
         ConfigurarCultura();
 
+        // A janela de login abre antes da principal; sem isto o app encerraria ao fechá-la.
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
         try
         {
             _host = CriarHost(e.Args);
@@ -43,7 +50,15 @@ public partial class App : System.Windows.Application
 
             await _host.StartAsync();
 
+            if (!await GarantirLoginAsync())
+            {
+                Shutdown();
+                return;
+            }
+
             var janela = _host.Services.GetRequiredService<MainWindow>();
+            MainWindow = janela;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
             janela.Show();
             await _host.Services.GetRequiredService<MainViewModel>().InicializarAsync();
 
@@ -59,6 +74,22 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Error);
             Shutdown(1);
         }
+    }
+
+    /// <summary>
+    /// Sem login (SQLite local) segue direto. Com login, tenta a sessão guardada e, se não houver,
+    /// mostra a tela de entrada. Retorna falso se o usuário fechar a tela sem entrar.
+    /// </summary>
+    private async Task<bool> GarantirLoginAsync()
+    {
+        var auth = _host!.Services.GetRequiredService<IAuthService>();
+        if (!auth.ExigeLogin) return true;
+
+        _logger?.LogInformation("Login exigido; tentando restaurar a sessão guardada");
+        if (await auth.RestaurarSessaoAsync()) return true;
+
+        var janelaDeLogin = _host.Services.GetRequiredService<LoginWindow>();
+        return janelaDeLogin.ShowDialog() == true;
     }
 
     private async Task DispararAutoEnvioEmBackgroundAsync()
@@ -110,6 +141,15 @@ public partial class App : System.Windows.Application
             ContentRootPath = AppContext.BaseDirectory
         });
 
+        // Configuração local da máquina (URL e chave pública do Supabase, modo de login): fica fora do
+        // repositório, na mesma pasta do banco, e sobrescreve o appsettings.json quando existir.
+        var configuracaoLocal = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "GestaoPagamentos",
+            "appsettings.Local.json");
+        if (File.Exists(configuracaoLocal))
+            builder.Configuration.AddJsonFile(configuracaoLocal, optional: false, reloadOnChange: false);
+
         // Configurar logging centralizado
         var logStore = new InMemoryLogStore();
         builder.Services.AddSingleton(logStore);
@@ -123,6 +163,9 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<INavigator, Navigator>();
         builder.Services.AddSingleton<ILauncher, ProcessLauncher>();
         builder.Services.AddSingleton<IDialogService, WpfDialogService>();
+        builder.Services.AddSingleton<ISessionStore, DpapiSessionStore>();
+        builder.Services.AddTransient<LoginViewModel>();
+        builder.Services.AddTransient<LoginWindow>();
 
         builder.Services.AddSingleton<DevedorService>();
         builder.Services.AddSingleton<DividaService>();
