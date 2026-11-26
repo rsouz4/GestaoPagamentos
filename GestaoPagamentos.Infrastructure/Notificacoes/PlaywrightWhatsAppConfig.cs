@@ -9,6 +9,9 @@ public sealed class PlaywrightWhatsAppConfig
     public int DelayAntesDeDigitar { get; set; } = 800;
     public int DelayEntreCaracteres { get; set; } = 50;
     public int DelayAntesDeEnviar { get; set; } = 1500;
+
+    /// <summary>Intervalo entre uma mensagem e a próxima no envio automático em lote.</summary>
+    public TimeSpan IntervaloEntreEnvios { get; set; } = TimeSpan.FromSeconds(40);
     public string UserAgent { get; set; } = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
     public IEnumerable<string>? ArgsAdicionalBrowser { get; set; }
 }

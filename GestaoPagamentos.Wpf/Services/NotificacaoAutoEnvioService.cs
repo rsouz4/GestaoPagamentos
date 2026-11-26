@@ -1,5 +1,6 @@
 using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Domain.Notificacoes;
+using GestaoPagamentos.Infrastructure.Notificacoes;
 using GestaoPagamentos.Wpf.Notificacoes;
 using GestaoPagamentos.Wpf.Shell;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ public sealed class NotificacaoAutoEnvioService(
     NotificacaoService notificacaoService,
     IWhatsAppAutomationService automationService,
     AppEvents appEvents,
+    PlaywrightWhatsAppConfig whatsAppConfig,
     ILogger<NotificacaoAutoEnvioService> logger)
 {
     private static readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -121,7 +123,7 @@ public sealed class NotificacaoAutoEnvioService(
                 // Intervalo entre envios para evitar bloqueio do WhatsApp
                 if (i < comTelefonValido.Count - 1)
                 {
-                    await Task.Delay(2000, ct);
+                    await Task.Delay(whatsAppConfig.IntervaloEntreEnvios, ct);
                 }
             }
 

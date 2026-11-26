@@ -41,7 +41,7 @@ Integração de automação de navegador (Playwright/Chromium) para enviar mensa
 - Args Playwright anti-detecção: `--disable-blink-features=AutomationControlled`
 - Modo headless com recursos desabilitados
 - Envio individual, não em massa
-- Intervalo de 2 segundos entre mensagens em lotes
+- Intervalo de 40 segundos entre mensagens em lotes (`WhatsAppAutomation:IntervaloEntreEnvios` no `appsettings.json`)
 
 ✅ **Recomendações adicionais:**
 - **Não enviar mais de 5-10 mensagens/dia** por número
