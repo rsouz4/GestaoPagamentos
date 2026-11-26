@@ -1,22 +1,19 @@
 using GestaoPagamentos.Application.Common;
-using GestaoPagamentos.Application.Relatorios;
+using GestaoPagamentos.Application.Persistence;
 using GestaoPagamentos.Domain.Dividas;
-using GestaoPagamentos.Infrastructure.Persistence;
-using GestaoPagamentos.Wpf.Dividas;
-using Microsoft.EntityFrameworkCore;
 
-namespace GestaoPagamentos.Wpf.Services;
+namespace GestaoPagamentos.Application.Relatorios;
 
-public sealed class RelatorioService(IDbContextFactory<AppDbContext> dbFactory, IClock clock)
+public sealed class RelatorioService(IUnitOfWorkFactory uowFactory, IClock clock)
 {
     public async Task<ResumoDto> ObterResumoAsync(CancellationToken ct = default)
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        await using var uow = await uowFactory.CriarAsync(ct);
 
         var hoje = clock.Hoje;
-        var validas = await DividaService.ComParcelas(db).AsNoTracking()
+        var validas = (await uow.Dividas.ListarAsync(null, null, ct))
             .Where(d => d.Status != StatusDivida.Cancelada)
-            .ToListAsync(ct);
+            .ToList();
         var ativas = validas.Where(d => d.Status == StatusDivida.Ativa).ToList();
 
         var abertas = ativas.SelectMany(d => d.Parcelas).Where(p => !p.EstaQuitada).ToList();
@@ -34,16 +31,12 @@ public sealed class RelatorioService(IDbContextFactory<AppDbContext> dbFactory, 
 
     public async Task<IReadOnlyList<ParcelaAtrasadaDto>> ListarAtrasadosAsync(CancellationToken ct = default)
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        await using var uow = await uowFactory.CriarAsync(ct);
 
         var hoje = clock.Hoje;
-        var ativas = await DividaService.ComParcelas(db).AsNoTracking()
-            .Where(d => d.Status == StatusDivida.Ativa)
-            .ToListAsync(ct);
+        var ativas = await uow.Dividas.ListarAsync(StatusDivida.Ativa, null, ct);
         var devedorIds = ativas.Select(d => d.DevedorId).Distinct().ToList();
-        var mapa = await db.Devedores.AsNoTracking()
-            .Where(d => devedorIds.Contains(d.Id))
-            .ToDictionaryAsync(d => d.Id, ct);
+        var mapa = await uow.Devedores.ObterPorIdsAsync(devedorIds, ct);
 
         return ativas
             .SelectMany(d => d.Parcelas.Select(p => (Divida: d, Parcela: p)))
@@ -72,23 +65,29 @@ public sealed class RelatorioService(IDbContextFactory<AppDbContext> dbFactory, 
         Guid? devedorId = null,
         CancellationToken ct = default)
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        await using var uow = await uowFactory.CriarAsync(ct);
 
-        var query = DividaService.ComParcelas(db).AsNoTracking();
-        if (dividaId.HasValue) query = query.Where(d => d.Id == dividaId.Value);
-        if (devedorId.HasValue) query = query.Where(d => d.DevedorId == devedorId.Value);
-        var lista = await query.ToListAsync(ct);
+        IReadOnlyList<Divida> lista;
+        if (dividaId.HasValue)
+        {
+            var divida = await uow.Dividas.ObterAsync(dividaId.Value, ct);
+            lista = divida is not null && (!devedorId.HasValue || divida.DevedorId == devedorId.Value)
+                ? [divida]
+                : [];
+        }
+        else
+        {
+            lista = await uow.Dividas.ListarAsync(null, devedorId, ct);
+        }
 
         var ids = lista.Select(d => d.DevedorId).Distinct().ToList();
-        var nomes = await db.Devedores.AsNoTracking()
-            .Where(d => ids.Contains(d.Id))
-            .ToDictionaryAsync(d => d.Id, d => d.Nome, ct);
+        var devedores = await uow.Devedores.ObterPorIdsAsync(ids, ct);
 
         return lista
             .SelectMany(d => d.Parcelas.SelectMany(p => p.Pagamentos.Select(pg => new HistoricoPagamentoDto(
                 pg.Id,
                 d.Id,
-                nomes.GetValueOrDefault(d.DevedorId, "-"),
+                devedores.TryGetValue(d.DevedorId, out var devedor) ? devedor.Nome : "-",
                 d.Descricao,
                 p.Numero,
                 pg.Valor,

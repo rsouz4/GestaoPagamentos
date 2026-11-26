@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
+using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Wpf.Common;
 using GestaoPagamentos.Wpf.Notificacoes;
 

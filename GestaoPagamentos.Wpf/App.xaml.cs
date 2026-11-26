@@ -1,7 +1,11 @@
 using GestaoPagamentos.Application.Common;
+using GestaoPagamentos.Application.Configuracoes;
+using GestaoPagamentos.Application.Devedores;
+using GestaoPagamentos.Application.Dividas;
 using GestaoPagamentos.Application.Notificacoes;
+using GestaoPagamentos.Application.Pagamentos;
+using GestaoPagamentos.Application.Relatorios;
 using GestaoPagamentos.Infrastructure;
-using GestaoPagamentos.Infrastructure.Persistence;
 using GestaoPagamentos.Wpf.Common;
 using GestaoPagamentos.Wpf.Configuracoes;
 using GestaoPagamentos.Wpf.Dashboard;
@@ -11,7 +15,6 @@ using GestaoPagamentos.Wpf.Notificacoes;
 using GestaoPagamentos.Wpf.Services;
 using GestaoPagamentos.Wpf.Services.Logging;
 using GestaoPagamentos.Wpf.Shell;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -36,11 +39,7 @@ public partial class App : System.Windows.Application
             _host = CriarHost(e.Args);
             _logger = _host.Services.GetRequiredService<ILogger<App>>();
 
-            using (var scope = _host.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                await db.Database.MigrateAsync();
-            }
+            await _host.Services.InicializarInfraestruturaAsync();
 
             await _host.StartAsync();
 

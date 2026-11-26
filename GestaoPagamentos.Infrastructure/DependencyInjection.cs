@@ -1,4 +1,5 @@
 using GestaoPagamentos.Application.Notificacoes;
+using GestaoPagamentos.Application.Persistence;
 using GestaoPagamentos.Infrastructure.Notificacoes;
 using GestaoPagamentos.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         }
 
         services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(connectionString));
+        services.AddSingleton<IUnitOfWorkFactory, EfUnitOfWorkFactory>();
 
         // Registra serviço de automação WhatsApp
         var whatsappConfig = configuration.GetSection("WhatsAppAutomation").Get<PlaywrightWhatsAppConfig>()
@@ -38,6 +40,14 @@ public static class DependencyInjection
         services.AddScoped<IWhatsAppAutomationService, PlaywrightWhatsAppService>();
 
         return services;
+    }
+
+    /// <summary>Prepara o armazenamento na abertura do app (hoje: aplica as migrações do SQLite).</summary>
+    public static async Task InicializarInfraestruturaAsync(this IServiceProvider services, CancellationToken ct = default)
+    {
+        var dbFactory = services.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        await db.Database.MigrateAsync(ct);
     }
 
     private static string? GetDataSourcePath(string connectionString)
