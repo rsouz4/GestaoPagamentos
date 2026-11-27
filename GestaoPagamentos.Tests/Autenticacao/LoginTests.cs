@@ -228,3 +228,74 @@ public sealed class EscolhaDoModoDeLoginTests
         Assert.False(await auth.RestaurarSessaoAsync());
     }
 }
+
+public sealed class EscolhaDoArmazenamentoTests
+{
+    private static ServiceCollection Servicos(Dictionary<string, string?> extras, out IConfiguration configuracao)
+    {
+        var valores = new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:DefaultConnection"] = "Data Source=/teste-nao-usado/x.db",
+            ["Supabase:Url"] = "https://abc.supabase.co",
+            ["Supabase:AnonKey"] = "chave"
+        };
+        foreach (var (chave, valor) in extras) valores[chave] = valor;
+
+        configuracao = new ConfigurationBuilder().AddInMemoryCollection(valores).Build();
+        var servicos = new ServiceCollection();
+        servicos.AddLogging();
+        servicos.AddSingleton<ISessionStore, ArmazenamentoEmMemoria>();
+        return servicos;
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Sqlite")]
+    [InlineData("qualquer-outro-valor")]
+    public void PorPadrao_UsaOSqliteLocal(string? modo)
+    {
+        var extras = new Dictionary<string, string?>();
+        if (modo is not null) extras["Armazenamento:Modo"] = modo;
+        var servicos = Servicos(extras, out var configuracao);
+        servicos.AddInfrastructure(configuracao);
+        using var provedor = servicos.BuildServiceProvider();
+
+        Assert.IsType<GestaoPagamentos.Infrastructure.Persistence.EfUnitOfWorkFactory>(
+            provedor.GetRequiredService<GestaoPagamentos.Application.Persistence.IUnitOfWorkFactory>());
+    }
+
+    [Theory]
+    [InlineData("Supabase")]
+    [InlineData("supabase")]
+    public void ModoSupabase_UsaANuvem(string modo)
+    {
+        var servicos = Servicos(new() { ["Armazenamento:Modo"] = modo, ["Autenticacao:Modo"] = "Supabase" }, out var configuracao);
+        servicos.AddInfrastructure(configuracao);
+        using var provedor = servicos.BuildServiceProvider();
+
+        Assert.IsType<SupabaseUnitOfWorkFactory>(
+            provedor.GetRequiredService<GestaoPagamentos.Application.Persistence.IUnitOfWorkFactory>());
+    }
+
+    [Fact]
+    public void ModoSupabase_SemLoginSupabase_FalhaComMensagemClara()
+    {
+        var servicos = Servicos(new() { ["Armazenamento:Modo"] = "Supabase", ["Autenticacao:Modo"] = "Nenhuma" }, out var configuracao);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => servicos.AddInfrastructure(configuracao));
+
+        Assert.Contains("Autenticacao:Modo", ex.Message);
+    }
+
+    [Fact]
+    public async Task ModoSupabase_InicializarNaoMexeNoSqlite()
+    {
+        var servicos = Servicos(new() { ["Armazenamento:Modo"] = "Supabase", ["Autenticacao:Modo"] = "Supabase" }, out var configuracao);
+        servicos.AddSingleton(configuracao);
+        servicos.AddInfrastructure(configuracao);
+        using var provedor = servicos.BuildServiceProvider();
+
+        // Se tentasse migrar o SQLite, falharia aqui: o caminho do banco não existe.
+        await provedor.InicializarInfraestruturaAsync();
+    }
+}

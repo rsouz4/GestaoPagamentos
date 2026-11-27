@@ -33,12 +33,12 @@ public static class DependencyInjection
         }
 
         services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(connectionString));
-        services.AddSingleton<IUnitOfWorkFactory, EfUnitOfWorkFactory>();
 
         // Login: "Nenhuma" (SQLite local, abre direto) ou "Supabase" (e-mail e senha). O app que usa
         // este método precisa registrar um ISessionStore para guardar a sessão.
         var modoAutenticacao = configuration["Autenticacao:Modo"] ?? "Nenhuma";
-        if (string.Equals(modoAutenticacao, "Supabase", StringComparison.OrdinalIgnoreCase))
+        var autenticaComSupabase = string.Equals(modoAutenticacao, "Supabase", StringComparison.OrdinalIgnoreCase);
+        if (autenticaComSupabase)
         {
             services.AddSingleton(configuration.GetSection("Supabase").Get<SupabaseConfig>() ?? new SupabaseConfig());
             services.AddSingleton<SessaoPersistenteSupabase>();
@@ -50,6 +50,25 @@ public static class DependencyInjection
             services.AddSingleton<IAuthService, SemAutenticacao>();
         }
 
+        // Onde ficam os dados: "Sqlite" (arquivo local, padrão) ou "Supabase" (nuvem; exige o login Supabase,
+        // porque é o login que libera as linhas do usuário).
+        if (ArmazenaNoSupabase(configuration))
+        {
+            if (!autenticaComSupabase)
+                throw new InvalidOperationException(
+                    "Armazenamento:Modo = Supabase exige Autenticacao:Modo = Supabase.");
+
+            services.AddSingleton<IApiSupabase>(provedor => new ApiSupabase(
+                provedor.GetRequiredService<ClienteSupabase>(),
+                provedor.GetRequiredService<SupabaseConfig>(),
+                new HttpClient()));
+            services.AddSingleton<IUnitOfWorkFactory, SupabaseUnitOfWorkFactory>();
+        }
+        else
+        {
+            services.AddSingleton<IUnitOfWorkFactory, EfUnitOfWorkFactory>();
+        }
+
         // Registra serviço de automação WhatsApp
         var whatsappConfig = configuration.GetSection("WhatsAppAutomation").Get<PlaywrightWhatsAppConfig>()
             ?? new PlaywrightWhatsAppConfig();
@@ -59,9 +78,18 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>Prepara o armazenamento na abertura do app (hoje: aplica as migrações do SQLite).</summary>
+    private static bool ArmazenaNoSupabase(IConfiguration configuration) =>
+        string.Equals(configuration["Armazenamento:Modo"], "Supabase", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Prepara o armazenamento na abertura do app: aplica as migrações do SQLite. No modo Supabase
+    /// não há nada a preparar no computador (o esquema vive no banco da nuvem).
+    /// </summary>
     public static async Task InicializarInfraestruturaAsync(this IServiceProvider services, CancellationToken ct = default)
     {
+        var configuracao = services.GetService<IConfiguration>();
+        if (configuracao is not null && ArmazenaNoSupabase(configuracao)) return;
+
         var dbFactory = services.GetRequiredService<IDbContextFactory<AppDbContext>>();
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         await db.Database.MigrateAsync(ct);

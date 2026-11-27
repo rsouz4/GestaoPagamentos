@@ -4,6 +4,7 @@ using GestaoPagamentos.Application.Devedores;
 using GestaoPagamentos.Application.Dividas;
 using GestaoPagamentos.Application.Notificacoes;
 using GestaoPagamentos.Application.Pagamentos;
+using GestaoPagamentos.Application.Persistence;
 using GestaoPagamentos.Application.Relatorios;
 using GestaoPagamentos.Domain.Dividas;
 using GestaoPagamentos.Infrastructure.Persistence;
@@ -70,11 +71,22 @@ internal sealed class Ambiente : IDisposable
     public Ambiente()
     {
         _conexao.Open();
-        var fabricaDeContexto = new FabricaDeContexto(_conexao);
-        using (var db = fabricaDeContexto.CreateDbContext())
-            db.Database.EnsureCreated();
+        // Por padrão, SQLite em memória (rápido, sem rede). Com GESTAO_TESTES_ARMAZENAMENTO=Supabase,
+        // os mesmos testes rodam contra a conta de teste no Supabase; ver ContratoSupabase.
+        IUnitOfWorkFactory fabrica;
+        if (ContratoSupabase.Ativo)
+        {
+            fabrica = ContratoSupabase.ObterFabricaELimpar();
+        }
+        else
+        {
+            var fabricaDeContexto = new FabricaDeContexto(_conexao);
+            using (var db = fabricaDeContexto.CreateDbContext())
+                db.Database.EnsureCreated();
 
-        var fabrica = new EfUnitOfWorkFactory(fabricaDeContexto);
+            fabrica = new EfUnitOfWorkFactory(fabricaDeContexto);
+        }
+
         Devedores = new DevedorService(fabrica);
         Dividas = new DividaService(fabrica, Relogio);
         Pagamentos = new PagamentoService(fabrica, Relogio);
